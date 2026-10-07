@@ -191,6 +191,7 @@ class _BookingListPageState extends State<BookingListPage> {
                                 key: ValueKey(state.bookings.length),
                                 child: ListView.builder(
                                   shrinkWrap: true,
+                                  padding: const EdgeInsets.only(bottom: 32.0),
                                   // Erstes Element: Saldo-Verlauf des Monats, danach die Buchungen.
                                   itemCount: state.bookings.length + 1,
                                   itemBuilder: (BuildContext context, int index) {
@@ -277,6 +278,8 @@ class _BookingListPageState extends State<BookingListPage> {
                             ),
                             child: ExpansionTile(
                               dense: true,
+                              // Pfeil links vom schwebenden "+"-Button halten.
+                              tilePadding: const EdgeInsets.only(left: 16.0, right: 84.0),
                               title: Text(
                                 _isExpanded
                                     ? _dependingBookings.length == 1

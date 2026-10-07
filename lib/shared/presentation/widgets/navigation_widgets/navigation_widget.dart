@@ -47,22 +47,6 @@ class BottomNavBar extends StatefulWidget {
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
-/// Dockt den "+"-Button an die Tab-Leiste an, auch wenn darüber die Monats-/Jahresleiste liegt.
-class _NavBarDockedFabLocation extends FloatingActionButtonLocation {
-  final double offsetY;
-
-  const _NavBarDockedFabLocation(this.offsetY);
-
-  @override
-  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
-    final Offset centerDocked = FloatingActionButtonLocation.centerDocked.getOffset(scaffoldGeometry);
-    return Offset(centerDocked.dx, centerDocked.dy + offsetY);
-  }
-}
-
-// Konstante Instanzen, damit der Button nur beim Ein-/Ausblenden der Leiste animiert wird.
-const FloatingActionButtonLocation _fabLocationWithPeriodSelector = _NavBarDockedFabLocation(PeriodSelectorBar.height);
-const FloatingActionButtonLocation _fabLocationWithoutPeriodSelector = _NavBarDockedFabLocation(0.0);
 
 class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMixin, WidgetsBindingObserver {
   late int _tabIndex;
@@ -227,7 +211,8 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
           ),
         ),
       ),
-      floatingActionButtonLocation: _showPeriodSelector ? _fabLocationWithPeriodSelector : _fabLocationWithoutPeriodSelector,
+      // Der "+"-Button schwebt rechts über der Leiste, damit alle fünf Tabs gleich viel Platz haben.
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -261,33 +246,18 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
               onModeChanged: _onPeriodModeChanged,
             ),
           BottomAppBar(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
             height: 60.0,
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 8.0,
             child: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: 6.0),
               child: Row(
                 children: <Widget>[
-                  // Links zwei, rechts drei Tabs; die Mitte bleibt für den "+"-Button frei.
-                  Expanded(
-                    child: Row(
-                      children: [
-                        _buildNavItem(bookingsTabIndex, Icons.auto_stories_rounded, 'buchungen'),
-                        _buildNavItem(accountsTabIndex, Icons.account_balance_wallet_rounded, 'konten'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 72.0),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        _buildNavItem(statisticsTabIndex, Icons.insights_rounded, 'statistiken'),
-                        _buildNavItem(budgetsTabIndex, Icons.savings_rounded, 'budgets'),
-                        _buildNavItem(goalsTabIndex, Icons.flag_rounded, 'ziele'),
-                      ],
-                    ),
-                  ),
+                  // Fünf gleich breite Tabs.
+                  _buildNavItem(bookingsTabIndex, Icons.auto_stories_rounded, 'buchungen'),
+                  _buildNavItem(accountsTabIndex, Icons.account_balance_wallet_rounded, 'konten'),
+                  _buildNavItem(statisticsTabIndex, Icons.insights_rounded, 'statistiken'),
+                  _buildNavItem(budgetsTabIndex, Icons.savings_rounded, 'budgets'),
+                  _buildNavItem(goalsTabIndex, Icons.flag_rounded, 'ziele'),
                 ],
               ),
             ),

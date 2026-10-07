@@ -116,6 +116,8 @@ class _AccountListPageState extends State<AccountListPage> {
                   ),
                   Expanded(
                     child: ListView.builder(
+                      // Platz für den schwebenden "+"-Button.
+                      padding: const EdgeInsets.only(bottom: 88.0),
                       itemCount: visibleAccounts.length,
                       itemBuilder: (BuildContext context, int index) {
                         if (index == 0 || visibleAccounts[index - 1].type != visibleAccounts[index].type) {
@@ -212,6 +214,8 @@ class _AccountListPageState extends State<AccountListPage> {
                   ),
                   Expanded(
                     child: ListView.builder(
+                      // Platz für den schwebenden "+"-Button.
+                      padding: const EdgeInsets.only(bottom: 88.0),
                       itemCount: visibleAccounts.length,
                       itemBuilder: (BuildContext context, int index) {
                         if (index == 0 || visibleAccounts[index - 1].type != visibleAccounts[index].type) {

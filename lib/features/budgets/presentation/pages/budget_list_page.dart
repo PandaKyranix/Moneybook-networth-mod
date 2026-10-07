@@ -168,6 +168,8 @@ class _BudgetListPageState extends State<BudgetListPage> with TickerProviderStat
                         child: AnimationLimiter(
                           key: ValueKey('${budgetState.budgets.length}_${widget.selectedDate}'),
                           child: ListView.builder(
+                            // Platz für den schwebenden "+"-Button.
+                            padding: const EdgeInsets.only(bottom: 88.0),
                             itemCount: budgetState.budgets.length,
                             itemBuilder: (BuildContext context, int index) {
                               return AnimationConfiguration.staggeredList(

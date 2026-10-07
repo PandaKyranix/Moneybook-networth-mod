@@ -361,7 +361,7 @@ class _YearlyBudgetOverviewState extends State<YearlyBudgetOverview> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.only(bottom: 40.0),
+      padding: const EdgeInsets.only(bottom: 88.0),
       children: [
         _buildOverviewCard(context, summary),
         _buildChartCard(context, summary),

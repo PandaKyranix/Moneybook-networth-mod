@@ -89,7 +89,7 @@ class _YearlyBookingOverviewState extends State<YearlyBookingOverview> {
     final SaldoSummary yearTotal = months.fold(SaldoSummary.zero, (total, month) => total + month.due);
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 40.0),
+      padding: const EdgeInsets.only(bottom: 88.0),
       children: [
         SizedBox(
           height: 70.0,

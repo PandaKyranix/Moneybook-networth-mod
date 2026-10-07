@@ -45,7 +45,7 @@ class _PeriodSelectorBarState extends State<PeriodSelectorBar> {
     super.initState();
     _anchorDate = widget.selectedDate;
     _anchorMode = _effectiveMode;
-    _pageController = PageController(initialPage: _centerPage, viewportFraction: 0.42);
+    _pageController = PageController(initialPage: _centerPage, viewportFraction: 0.3);
   }
 
   @override
@@ -299,35 +299,19 @@ class _PeriodSelectorBarState extends State<PeriodSelectorBar> {
         color: Theme.of(context).scaffoldBackgroundColor,
         border: Border(top: BorderSide(color: Colors.grey.shade800, width: 0.5)),
       ),
-      child: LayoutBuilder(
-        builder: (BuildContext context, BoxConstraints constraints) {
-          // Die Mitte bleibt frei: dort ragt der "+"-Button der Tab-Leiste in die Leiste hinein.
-          const double centerGap = 72.0;
-          final double sideWidth = (constraints.maxWidth - centerGap) / 2.0;
-          return Row(
-            children: [
-              SizedBox(
-                width: sideWidth,
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: _onPageChanged,
-                  itemBuilder: _buildItem,
-                ),
-              ),
-              const SizedBox(width: centerGap),
-              SizedBox(
-                width: sideWidth,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildTodayButton(context),
-                    if (widget.allowYearMode) _buildModeToggle(context),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+      child: Row(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              itemBuilder: _buildItem,
+            ),
+          ),
+          _buildTodayButton(context),
+          if (widget.allowYearMode) _buildModeToggle(context),
+          const SizedBox(width: 4.0),
+        ],
       ),
     );
   }

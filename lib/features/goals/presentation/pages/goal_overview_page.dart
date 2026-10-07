@@ -89,7 +89,7 @@ class _GoalOverviewPageState extends State<GoalOverviewPage> {
           }
           return AnimationLimiter(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 48.0),
+              padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 88.0),
               children: [
                 if (activeGoals.isNotEmpty) _buildSummary(context, activeGoals),
                 for (int i = 0; i < activeGoals.length; i++)
