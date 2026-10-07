@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../../../core/consts/database_consts.dart';
+import '../../../core/utils/account_schema.dart';
 import '../../../features/accounts/domain/value_objects/account_type.dart';
 import '../../../features/bookings/domain/value_objects/booking_type.dart';
 
@@ -25,6 +26,7 @@ class SharedLocalDataSourceImpl implements SharedLocalDataSource {
         await _migrateToNewVersion(db);
       },
     );
+    await ensureAccountNetWorthColumn(db);
     return db;
   }
 
@@ -53,7 +55,8 @@ class SharedLocalDataSourceImpl implements SharedLocalDataSource {
         type TEXT NOT NULL,
         name TEXT NOT NULL,
         amount DOUBLE NOT NULL,
-        currency TEXT NOT NULL
+        currency TEXT NOT NULL,
+        includeInNetWorth INTEGER NOT NULL DEFAULT 1
       )
       ''');
       await db.execute('''

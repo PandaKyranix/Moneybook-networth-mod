@@ -280,5 +280,13 @@
   "lebenserwartung": "Life Expectancy",
   "lebenserwartung_beschreibung": "Until what age should the capital last?",
   "in_jahren": "in years",
-  "steuersatz": "Tax Rate"
+  "steuersatz": "Tax Rate",
+  "in_vermögen_einbeziehen": "Include in net worth",
+  "in_vermögen_einbeziehen_an": "Balance counts towards assets, debts and balance.",
+  "in_vermögen_einbeziehen_aus": "Set aside: balance does not count towards net worth. Transfers into this account reduce your available money, transfers back increase it again.",
+  "nicht_im_vermögen": "Set aside · not in net worth",
+  "zurückgelegt": "Set aside",
+  "zurückgelegt_nicht_im_vermögen": "Set aside, not in net worth",
+  "zurückgelegt_beschreibung": "Accounts with \"Include in net worth\" turned off count as money set aside. Their balances are summed up here and are not part of assets, debts or balance.\n\nTransfers into such an account reduce your available net worth, transfers back increase it again. The bookings stay normal transfers and are not counted as expenses or income.\n\nOn the bookings page, the \"Set aside\" card shows this month's transfers into set-aside accounts minus transfers back.",
+  "saldo_ohne_zurückgelegt": "Set-aside accounts (lock icon) are not included."
 }

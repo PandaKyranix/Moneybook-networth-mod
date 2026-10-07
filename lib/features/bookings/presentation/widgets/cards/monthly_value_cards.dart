@@ -11,6 +11,8 @@ class MonthlyValueCards extends StatefulWidget {
   final double monthlyIncome;
   final double monthlyInvestmentBuys;
   final double monthlyInvestmentSales;
+  final double monthlySetAside;
+  final bool showSetAside;
 
   const MonthlyValueCards({
     super.key,
@@ -20,6 +22,8 @@ class MonthlyValueCards extends StatefulWidget {
     required this.monthlyIncome,
     required this.monthlyInvestmentBuys,
     required this.monthlyInvestmentSales,
+    this.monthlySetAside = 0.0,
+    this.showSetAside = false,
   });
 
   @override
@@ -60,6 +64,15 @@ class _MonthlyValueCardsState extends State<MonthlyValueCards> {
             dailyAverageValue: (widget.monthlyIncome - widget.monthlyExpense) / numberOfDays,
             textColor: widget.monthlyIncome - widget.monthlyExpense >= 0.0 ? Colors.greenAccent : Colors.redAccent,
           ),
+          // Netto zurückgelegt: Überträge auf ausgeschlossene Konten minus Überträge zurück.
+          // Wird nicht als Ausgabe gezählt und verändert den Saldo nicht.
+          if (widget.showSetAside)
+            MonthlyCard(
+              title: AppLocalizations.of(context).translate('zurückgelegt'),
+              monthlyValue: widget.monthlySetAside,
+              dailyAverageValue: widget.monthlySetAside / numberOfDays,
+              textColor: Colors.amberAccent,
+            ),
           MonthlyCard(
             title: AppLocalizations.of(context).translate('käufe'),
             monthlyValue: widget.monthlyInvestmentBuys,

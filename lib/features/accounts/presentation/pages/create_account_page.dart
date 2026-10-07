@@ -18,6 +18,7 @@ import '../../../../shared/presentation/widgets/input_fields/title_text_field.da
 import '../../../bookings/domain/value_objects/amount.dart';
 import '../../domain/value_objects/account_type.dart';
 import '../bloc/account_bloc.dart';
+import '../widgets/input_fields/include_in_net_worth_switch.dart';
 
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({super.key});
@@ -38,6 +39,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   // State wie bei dem ersten Aufruf des Events ist und somit nicht erneut aufgerufen wird. Vielleicht gibt es eine bessere Lösung.
   int _numberOfEventCalls = 0;
   String _accountTypeForDb = AccountType.none.name;
+  bool _includeInNetWorth = true;
 
   void _setAccountTypeForDb(String accountTypeForDb) {
     setState(() {
@@ -90,6 +92,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                           name: _accountNameController.text.trim(),
                           amount: Amount.getValue(_amountController.text),
                           currency: Amount.getCurrency(_amountController.text),
+                          includeInNetWorth: _includeInNetWorth,
                         ),
                       ),
                     );
@@ -121,6 +124,10 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                           amountController: _amountController,
                           hintText: AppLocalizations.of(context).translate('betrag') + '...',
                           showMinus: true,
+                        ),
+                        IncludeInNetWorthSwitch(
+                          value: _includeInNetWorth,
+                          onChanged: (value) => setState(() => _includeInNetWorth = value),
                         ),
                         SaveButton(
                           text: AppLocalizations.of(context).translate('erstellen'),

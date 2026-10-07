@@ -8,6 +8,7 @@ import 'package:moneybook/shared/domain/value_objects/serie_mode_type.dart';
 import '../../../../../core/utils/app_localizations.dart';
 import '../../../../../core/utils/number_formatter.dart';
 import '../../../../../shared/presentation/widgets/deco/bottom_sheet_header.dart';
+import '../../../../accounts/domain/services/net_worth_calculator.dart';
 import '../../../domain/entities/booking.dart';
 import '../../../domain/value_objects/amount_type.dart';
 import '../../../domain/value_objects/booking_type.dart';
@@ -15,11 +16,14 @@ import '../../../domain/value_objects/booking_type.dart';
 class BookingCard extends StatelessWidget {
   final Booking booking;
   final bool activateEditing;
+  // Namen der aus dem Vermögen ausgeschlossenen Konten, um Überträge dorthin / von dort zu kennzeichnen.
+  final Set<String> excludedAccountNames;
 
   const BookingCard({
     super.key,
     required this.booking,
     this.activateEditing = true,
+    this.excludedAccountNames = const {},
   });
 
   Color _getBookingTypeColor() {
@@ -31,6 +35,26 @@ class BookingCard extends StatelessWidget {
       return Colors.cyanAccent;
     }
     return Colors.cyanAccent;
+  }
+
+  // Schloss-Symbol für Überträge, die Geld zurücklegen (einbezogen -> ausgeschlossen)
+  // oder freigeben (ausgeschlossen -> einbezogen).
+  Widget _buildTransferFlowIcon() {
+    switch (classifyTransfer(booking, excludedAccountNames)) {
+      case TransferFlow.setAside:
+        return const Padding(
+          padding: EdgeInsets.only(left: 6.0),
+          child: Icon(Icons.lock_outline_rounded, size: 14.0, color: Colors.amberAccent),
+        );
+      case TransferFlow.released:
+        return const Padding(
+          padding: EdgeInsets.only(left: 6.0),
+          child: Icon(Icons.lock_open_rounded, size: 14.0, color: Colors.amberAccent),
+        );
+      case TransferFlow.internal:
+      case TransferFlow.notATransfer:
+        return const SizedBox();
+    }
   }
 
   void _openSerieBookingBottomSheet(BuildContext context) {
@@ -191,6 +215,7 @@ class BookingCard extends StatelessWidget {
                                           style: const TextStyle(color: Colors.grey),
                                         ),
                                       ),
+                                _buildTransferFlowIcon(),
                               ],
                             ),
                           ],

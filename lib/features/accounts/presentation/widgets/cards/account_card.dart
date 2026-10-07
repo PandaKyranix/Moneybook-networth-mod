@@ -30,7 +30,16 @@ class _AccountCardState extends State<AccountCard> {
           ),
           child: Container(
             decoration: BoxDecoration(
-              border: Border(left: BorderSide(color: widget.account.amount >= 0.0 ? Colors.green : Colors.redAccent, width: 3.5)),
+              border: Border(
+                left: BorderSide(
+                  color: !widget.account.includeInNetWorth
+                      ? Colors.amberAccent
+                      : widget.account.amount >= 0.0
+                          ? Colors.green
+                          : Colors.redAccent,
+                  width: 3.5,
+                ),
+              ),
             ),
             child: ListTile(
               title: Row(
@@ -38,10 +47,35 @@ class _AccountCardState extends State<AccountCard> {
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Text(
-                      AppLocalizations.of(context).translate(widget.account.name),
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (!widget.account.includeInNetWorth)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 6.0),
+                                child: Icon(Icons.lock_outline_rounded, size: 15.0, color: Colors.amberAccent),
+                              ),
+                            Flexible(
+                              child: Text(
+                                AppLocalizations.of(context).translate(widget.account.name),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 14.0),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (!widget.account.includeInNetWorth)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: Text(
+                              AppLocalizations.of(context).translate('nicht_im_vermögen'),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 11.0, color: Colors.amberAccent),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12.0),

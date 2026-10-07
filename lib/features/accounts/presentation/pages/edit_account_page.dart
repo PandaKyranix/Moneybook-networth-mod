@@ -25,6 +25,7 @@ import '../../../bookings/domain/value_objects/booking_type.dart';
 import '../../../bookings/presentation/bloc/booking_bloc.dart' as booking;
 import '../../domain/value_objects/account_type.dart';
 import '../bloc/account_bloc.dart';
+import '../widgets/input_fields/include_in_net_worth_switch.dart';
 
 class EditAccountPage extends StatefulWidget {
   final Account account;
@@ -56,12 +57,14 @@ class _EditAccountPageState extends State<EditAccountPage> {
   String _accountTypeForDb = '';
   String _accountNameForDb = '';
   String _toAccountNameForDb = '';
+  late bool _includeInNetWorth;
 
   @override
   void initState() {
     super.initState();
     _oldAccountName = widget.account.name;
     _oldAccountAmount = widget.account.amount;
+    _includeInNetWorth = widget.account.includeInNetWorth;
   }
 
   @override
@@ -202,6 +205,7 @@ class _EditAccountPageState extends State<EditAccountPage> {
               name: _accountNameController.text.trim(),
               amount: Amount.getValue(_amountController.text),
               currency: Amount.getCurrency(_amountController.text),
+              includeInNetWorth: _includeInNetWorth,
             ),
           ),
         );
@@ -249,6 +253,7 @@ class _EditAccountPageState extends State<EditAccountPage> {
             name: _accountNameController.text.trim(),
             amount: Amount.getValue(_amountController.text),
             currency: Amount.getCurrency(_amountController.text),
+            includeInNetWorth: _includeInNetWorth,
           ),
         ),
       );
@@ -343,6 +348,10 @@ class _EditAccountPageState extends State<EditAccountPage> {
                         amountController: _amountController,
                         hintText: AppLocalizations.of(context).translate('betrag') + '...',
                         showMinus: true,
+                      ),
+                      IncludeInNetWorthSwitch(
+                        value: _includeInNetWorth,
+                        onChanged: (value) => setState(() => _includeInNetWorth = value),
                       ),
                       SaveButton(
                         text: AppLocalizations.of(context).translate('speichern'),

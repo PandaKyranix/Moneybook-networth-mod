@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../consts/database_consts.dart';
+import 'account_schema.dart';
 
 Future<void> exportDatabaseBackup() async {
   final databasesPath = await getDatabasesPath();
@@ -50,6 +51,7 @@ Future<int> importDatabaseBackup() async {
     final db = await openDatabase(localDbPath);
     try {
       await db.rawQuery('SELECT name FROM sqlite_master WHERE type="table"');
+      await ensureAccountNetWorthColumn(db);
     } catch (e) {
       print('Fehler beim Lesen der importierten DB: $e');
       return 2;

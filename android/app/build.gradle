@@ -1,0 +1,65 @@
+// Recreated build script: the original android/app/build.gradle is gitignored in the
+// public repository. Values match the installed Play Store build (de.mdm.moneybook, 1.1.5 / 11).
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Optional own release key: if android/key.properties exists, it is used for signing.
+// Otherwise the local debug key is used. A stable key lets you install future rebuilds
+// as updates (keeping your data) instead of uninstalling first.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+android {
+    namespace = "de.mdm.moneybook"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        // Change this (e.g. to "de.mdm.moneybook.mod") if you want to install the
+        // modified app next to the original instead of replacing it.
+        applicationId = "de.mdm.moneybook"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = 11
+        versionName = "1.1.5-networth"
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            personal {
+                keyAlias = keystoreProperties["keyAlias"]
+                keyPassword = keystoreProperties["keyPassword"]
+                storeFile = rootProject.file(keystoreProperties["storeFile"])
+                storePassword = keystoreProperties["storePassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // The original developer's release key is not public, so the app is signed with
+            // your own key (key.properties) or, if absent, the local debug key.
+            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.personal : signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

@@ -3,6 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../../../core/consts/database_consts.dart';
 import '../../../bookings/domain/entities/booking.dart';
 import '../../domain/entities/account.dart';
+import '../../../../core/utils/account_schema.dart';
 import '../../domain/value_objects/account_type.dart';
 
 abstract class AccountLocalDataSource {
@@ -25,35 +26,33 @@ class AccountLocalDataSourceImpl implements AccountLocalDataSource {
   @override
   Future<void> create(Account account) async {
     db = await openDatabase(localDbName);
-    await db.rawInsert('INSERT INTO $accountDbName(type, name, amount, currency) VALUES(?, ?, ?, ?)', [
+    await ensureAccountNetWorthColumn(db);
+    await db.rawInsert('INSERT INTO $accountDbName(type, name, amount, currency, includeInNetWorth) VALUES(?, ?, ?, ?, ?)', [
       account.type.name,
       account.name,
       account.amount,
       account.currency,
+      account.includeInNetWorth ? 1 : 0,
     ]);
   }
 
   @override
   Future<void> delete(int id) async {
     db = await openDatabase(localDbName);
+    await ensureAccountNetWorthColumn(db);
     await db.rawDelete('DELETE FROM $accountDbName WHERE id = ?', [id]);
   }
 
   @override
   Future<Account> load(int id) async {
     db = await openDatabase(localDbName);
+    await ensureAccountNetWorthColumn(db);
     List<Map> loadedAccountMap = await db.rawQuery('SELECT * FROM $accountDbName WHERE id = ?', [id]);
     List<Account> loadedAccount = [];
     if (loadedAccountMap.isNotEmpty) {
       loadedAccount = loadedAccountMap
           .map(
-            (account) => Account(
-              id: account['id'],
-              type: AccountType.fromString(account['type']),
-              name: account['name'],
-              amount: account['amount'],
-              currency: account['currency'],
-            ),
+            (account) => Account.fromDbMap(account),
           )
           .toList();
     } else {
@@ -65,13 +64,15 @@ class AccountLocalDataSourceImpl implements AccountLocalDataSource {
   @override
   Future<void> edit(Account account) async {
     db = await openDatabase(localDbName);
+    await ensureAccountNetWorthColumn(db);
     try {
-      await db.rawUpdate('UPDATE $accountDbName SET id = ?, type = ?, name = ?, amount = ?, currency = ? WHERE id = ?', [
+      await db.rawUpdate('UPDATE $accountDbName SET id = ?, type = ?, name = ?, amount = ?, currency = ?, includeInNetWorth = ? WHERE id = ?', [
         account.id,
         account.type.name,
         account.name,
         account.amount,
         account.currency,
+        account.includeInNetWorth ? 1 : 0,
         account.id,
       ]);
     } catch (e) {
@@ -82,16 +83,11 @@ class AccountLocalDataSourceImpl implements AccountLocalDataSource {
   @override
   Future<List<Account>> loadAll() async {
     db = await openDatabase(localDbName);
+    await ensureAccountNetWorthColumn(db);
     List<Map> accountMap = await db.rawQuery('SELECT * FROM $accountDbName');
     List<Account> accountList = accountMap
         .map(
-          (account) => Account(
-            id: account['id'],
-            type: AccountType.fromString(account['type']),
-            name: account['name'],
-            amount: account['amount'],
-            currency: account['currency'],
-          ),
+          (account) => Account.fromDbMap(account),
         )
         .toList();
     accountList.sort((first, second) {
@@ -107,16 +103,11 @@ class AccountLocalDataSourceImpl implements AccountLocalDataSource {
   @override
   Future<List<Account>> loadAccountsWithFilter(List<String> accountNameFilter) async {
     db = await openDatabase(localDbName);
+    await ensureAccountNetWorthColumn(db);
     List<Map> accountMap = await db.rawQuery('SELECT * FROM $accountDbName');
     List<Account> accountList = accountMap
         .map(
-          (account) => Account(
-            id: account['id'],
-            type: AccountType.fromString(account['type']),
-            name: account['name'],
-            amount: account['amount'],
-            currency: account['currency'],
-          ),
+          (account) => Account.fromDbMap(account),
         )
         .where((account) => !accountNameFilter.contains(account.name))
         .toList();

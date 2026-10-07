@@ -10,6 +10,7 @@ import '../../../../core/consts/common_consts.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../shared/presentation/widgets/deco/empty_list.dart';
 import '../../domain/entities/account.dart';
+import '../../domain/services/net_worth_calculator.dart';
 import '../../domain/value_objects/account_type.dart';
 import '../bloc/account_bloc.dart';
 import '../widgets/cards/account_card.dart';
@@ -25,6 +26,8 @@ class _AccountListPageState extends State<AccountListPage> {
   final Map<AccountType, double> _accountTypeAmounts = {};
   double _assets = 0.0;
   double _debts = 0.0;
+  double _excludedTotal = 0.0;
+  int _excludedCount = 0;
 
   @override
   void initState() {
@@ -39,15 +42,12 @@ class _AccountListPageState extends State<AccountListPage> {
   }
 
   void _calculateOverviewValues(List<Account> accounts) {
-    _assets = 0.0;
-    _debts = 0.0;
-    for (int i = 0; i < accounts.length; i++) {
-      if (accounts[i].type == AccountType.credit || accounts[i].amount < 0.0) {
-        _debts += accounts[i].amount.abs();
-      } else {
-        _assets += accounts[i].amount;
-      }
-    }
+    // Ausgeschlossene Konten ("zurückgelegtes Geld") fließen nicht in Vermögen / Schulden / Saldo ein.
+    final NetWorthSummary summary = calculateNetWorth(accounts);
+    _assets = summary.assets;
+    _debts = summary.debts;
+    _excludedTotal = summary.excludedTotal;
+    _excludedCount = summary.excludedCount;
   }
 
   void _calculateAccountTypeAmounts(List<Account> accounts) {
@@ -98,6 +98,8 @@ class _AccountListPageState extends State<AccountListPage> {
                     accounts: state.accounts,
                     assets: _assets,
                     debts: _debts,
+                    excludedTotal: _excludedTotal,
+                    excludedCount: _excludedCount,
                   ),
                   CreateRow(
                     title: AppLocalizations.of(context).translate('konten'),
@@ -186,6 +188,8 @@ class _AccountListPageState extends State<AccountListPage> {
                     accounts: state.filteredAccounts,
                     assets: _assets,
                     debts: _debts,
+                    excludedTotal: _excludedTotal,
+                    excludedCount: _excludedCount,
                   ),
                   CreateRow(
                     title: AppLocalizations.of(context).translate('konten'),

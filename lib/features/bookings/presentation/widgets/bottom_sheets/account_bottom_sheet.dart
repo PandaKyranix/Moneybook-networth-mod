@@ -52,6 +52,7 @@ openAccountBottomSheet({
                                   _setAccount(context, account.name, controller),
                                 },
                                 text: account.name,
+                                showLock: !account.includeInNetWorth,
                               );
                             }).toList(),
                           ),

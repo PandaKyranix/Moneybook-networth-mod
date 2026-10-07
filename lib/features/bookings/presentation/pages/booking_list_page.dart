@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -6,8 +7,10 @@ import 'package:moneybook/features/bookings/presentation/widgets/cards/monthly_v
 import 'package:moneybook/shared/presentation/widgets/deco/empty_list.dart';
 
 import '../../../../core/consts/common_consts.dart';
+import '../../../../core/utils/account_schema.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../accounts/domain/services/net_worth_calculator.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/value_objects/amount_type.dart';
 import '../../domain/value_objects/booking_type.dart';
@@ -43,6 +46,24 @@ class _BookingListPageState extends State<BookingListPage> {
   double _monthlyDependingInvestmentSales = 0.0;
   int _numberOfBookedBookings = 0;
   bool _isExpanded = false;
+  // Namen der Konten, die aus der Vermögensberechnung ausgeschlossen sind (zurückgelegtes Geld).
+  Set<String> _excludedAccountNames = {};
+  double _monthlySetAside = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExcludedAccountNames();
+  }
+
+  Future<void> _loadExcludedAccountNames() async {
+    final Set<String> excludedAccountNames = await loadExcludedAccountNames();
+    if (mounted && !setEquals(excludedAccountNames, _excludedAccountNames)) {
+      setState(() {
+        _excludedAccountNames = excludedAccountNames;
+      });
+    }
+  }
 
   void _loadBookings(BuildContext context) {
     BlocProvider.of<BookingBloc>(context).add(
@@ -108,6 +129,11 @@ class _BookingListPageState extends State<BookingListPage> {
       }
       _dependingBookings.sort((first, second) => first.date.compareTo(second.date));
     }
+    // Überträge zwischen einbezogenen und ausgeschlossenen Konten (nur bereits gebuchte, wie bei den übrigen Monatswerten).
+    _monthlySetAside = calculateNetSetAside(
+      bookings.where((booking) => booking.date.isAfter(DateTime.now()) == false),
+      _excludedAccountNames,
+    );
   }
 
   @override
@@ -132,6 +158,8 @@ class _BookingListPageState extends State<BookingListPage> {
                         monthlyIncome: _monthlyIncome,
                         monthlyInvestmentBuys: _monthlyInvestmentBuys,
                         monthlyInvestmentSales: _monthlyInvestmentSales,
+                        monthlySetAside: _monthlySetAside,
+                        showSetAside: _excludedAccountNames.isNotEmpty,
                       ),
                       state.bookings.isNotEmpty
                           ? Expanded(
@@ -161,7 +189,7 @@ class _BookingListPageState extends State<BookingListPage> {
                                                     leftValue: _dailyIncomeMap[booking.date],
                                                     rightValue: _dailyExpenseMap[booking.date],
                                                   ),
-                                                BookingCard(booking: booking),
+                                                BookingCard(booking: booking, excludedAccountNames: _excludedAccountNames),
                                               ],
                                             ),
                                           ),
@@ -268,11 +296,11 @@ class _BookingListPageState extends State<BookingListPage> {
                                                       leftValue: _dailyIncomeMap[_dependingBookings[index].date],
                                                       rightValue: _dailyExpenseMap[_dependingBookings[index].date],
                                                     ),
-                                                    BookingCard(booking: _dependingBookings[index]),
+                                                    BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames),
                                                   ],
                                                 );
                                               } else {
-                                                return BookingCard(booking: _dependingBookings[index]);
+                                                return BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames);
                                               }
                                             }
                                             return const SizedBox();

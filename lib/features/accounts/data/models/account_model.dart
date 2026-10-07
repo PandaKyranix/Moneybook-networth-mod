@@ -7,5 +7,6 @@ class AccountModel extends Account {
     required super.name,
     required super.amount,
     required super.currency,
+    super.includeInNetWorth = true,
   });
 }
