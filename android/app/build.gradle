@@ -31,9 +31,9 @@ android {
     }
 
     defaultConfig {
-        // Change this (e.g. to "de.mdm.moneybook.mod") if you want to install the
-        // modified app next to the original instead of replacing it.
-        applicationId = "de.mdm.moneybook"
+        // Separate app ID so the modified app installs next to the original Play Store
+        // app (de.mdm.moneybook) instead of replacing it. Each app keeps its own data.
+        applicationId = "de.mdm.moneybook.mod"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = 11

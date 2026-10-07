@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="moneybook"
+        android:label="Moneybook Mod"
         android:name="${applicationName}"
         android:icon="@mipmap/moneybook_app_icon"
         android:usesCleartextTraffic="true">
