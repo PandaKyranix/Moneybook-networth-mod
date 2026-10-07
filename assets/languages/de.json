@@ -292,6 +292,6 @@
   "nicht_im_vermögen": "Zurückgelegt · nicht im Vermögen",
   "zurückgelegt": "Zurückgelegt",
   "zurückgelegt_nicht_im_vermögen": "Zurückgelegt, nicht im Vermögen",
-  "zurückgelegt_beschreibung": "Konten, bei denen \"In Vermögen einbeziehen\" ausgeschaltet ist, gelten als zurückgelegtes Geld. Ihre Kontostände sind hier zusammengefasst und fließen nicht in Vermögen, Schulden und Saldo ein.\n\nÜberträge auf ein solches Konto verringern dein verfügbares Vermögen, Überträge zurück erhöhen es wieder. Die Buchungen bleiben normale Überträge und zählen nicht als Ausgabe oder Einnahme.\n\nAuf der Buchungsseite zeigt die Karte \"Zurückgelegt\" die Überträge des Monats auf zurückgelegte Konten abzüglich der Überträge zurück.",
+  "zurückgelegt_beschreibung": "Konten, bei denen \"In Vermögen einbeziehen\" ausgeschaltet ist, gelten als zurückgelegtes Geld. Ihre Kontostände sind hier zusammengefasst und fließen nicht in Vermögen, Schulden und Saldo ein.\n\nÜberträge auf ein solches Konto verringern dein verfügbares Vermögen und den monatlichen Saldo auf der Buchungsseite, Überträge zurück erhöhen beides wieder. Die Buchungen bleiben normale Überträge und zählen nicht als Ausgabe oder Einnahme.\n\nAuf der Buchungsseite zeigt die Karte \"Zurückgelegt\" die Überträge des Monats auf zurückgelegte Konten abzüglich der Überträge zurück.",
   "saldo_ohne_zurückgelegt": "Zurückgelegte Konten (Schloss-Symbol) sind nicht enthalten."
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:moneybook/features/bookings/presentation/widgets/cards/monthly_card.dart';
 
 import '../../../../../core/utils/app_localizations.dart';
+import '../../../../accounts/domain/services/net_worth_calculator.dart';
 import '../../../domain/entities/booking.dart';
 
 class MonthlyValueCards extends StatefulWidget {
@@ -41,6 +42,13 @@ class _MonthlyValueCardsState extends State<MonthlyValueCards> {
 
   @override
   Widget build(BuildContext context) {
+    // Saldo = Einnahmen - Ausgaben - netto Zurückgelegtes (Überträge auf zurückgelegte Konten
+    // verringern, Überträge zurück erhöhen den Saldo). Ohne zurückgelegte Konten wie bisher.
+    final double monthlyBalance = calculateMonthlyBalance(
+      income: widget.monthlyIncome,
+      expense: widget.monthlyExpense,
+      netSetAside: widget.monthlySetAside,
+    );
     return SizedBox(
       height: 86.0,
       child: ListView(
@@ -60,12 +68,12 @@ class _MonthlyValueCardsState extends State<MonthlyValueCards> {
           ),
           MonthlyCard(
             title: AppLocalizations.of(context).translate('saldo'),
-            monthlyValue: widget.monthlyIncome - widget.monthlyExpense,
-            dailyAverageValue: (widget.monthlyIncome - widget.monthlyExpense) / numberOfDays,
-            textColor: widget.monthlyIncome - widget.monthlyExpense >= 0.0 ? Colors.greenAccent : Colors.redAccent,
+            monthlyValue: monthlyBalance,
+            dailyAverageValue: monthlyBalance / numberOfDays,
+            textColor: monthlyBalance >= 0.0 ? Colors.greenAccent : Colors.redAccent,
           ),
           // Netto zurückgelegt: Überträge auf ausgeschlossene Konten minus Überträge zurück.
-          // Wird nicht als Ausgabe gezählt und verändert den Saldo nicht.
+          // Wird nicht als Ausgabe gezählt, aber vom Saldo abgezogen (siehe calculateMonthlyBalance).
           if (widget.showSetAside)
             MonthlyCard(
               title: AppLocalizations.of(context).translate('zurückgelegt'),

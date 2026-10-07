@@ -107,6 +107,16 @@ void main() {
       expect(calculateNetSetAside(bookings, excluded), 300);
     });
 
+    test('monthly balance: set aside reduces it, released money increases it', () {
+      final excluded = {'Spar'};
+      // Einnahmen 3000, Ausgaben 1000, 500 zurückgelegt, 200 zurückgeholt -> Saldo 1700.
+      final netSetAside = calculateNetSetAside([_transfer('Giro', 'Spar', 500), _transfer('Spar', 'Giro', 200)], excluded);
+      expect(calculateMonthlyBalance(income: 3000, expense: 1000, netSetAside: netSetAside), 1700);
+      // Normale Überträge ändern den Saldo nicht.
+      final internal = calculateNetSetAside([_transfer('Giro', 'Bar', 400), _transfer('Spar', 'Spar2', 100)], {'Spar', 'Spar2'});
+      expect(calculateMonthlyBalance(income: 3000, expense: 1000, netSetAside: internal), 2000);
+    });
+
     test('changing the setting re-evaluates history without rewriting it', () {
       final bookings = [_transfer('Giro', 'Spar', 500)];
       expect(calculateNetSetAside(bookings, {'Spar'}), 500);

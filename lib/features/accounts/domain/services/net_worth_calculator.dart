@@ -100,3 +100,11 @@ double calculateNetSetAside(Iterable<Booking> bookings, Set<String> excludedAcco
   }
   return net;
 }
+
+/// Monatlicher Saldo auf der Buchungsseite: Einnahmen - Ausgaben - netto Zurückgelegtes.
+/// Geld, das auf ein zurückgelegtes Konto übertragen wird, steht nicht mehr zum Ausgeben zur
+/// Verfügung und verringert daher den Saldo; Überträge zurück erhöhen ihn wieder.
+/// Die Überträge selbst bleiben Überträge und zählen weder als Ausgabe noch als Einnahme.
+double calculateMonthlyBalance({required double income, required double expense, required double netSetAside}) {
+  return income - expense - netSetAside;
+}
