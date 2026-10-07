@@ -56,6 +56,10 @@ dependencies:
 
 dev_dependencies:
   flutter_launcher_icons: "^0.14.1"
+  # Needed for `flutter test`. In the original file it was accidentally indented under
+  # the flutter_launcher_icons settings below, so it was never installed.
+  flutter_test:
+    sdk: flutter
 
 flutter_launcher_icons:
   android: "launcher_icon"
