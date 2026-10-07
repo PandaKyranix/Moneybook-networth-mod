@@ -9,12 +9,18 @@ class PendingMonthlyValueCards extends StatefulWidget {
   final double monthlyDependingInvestmentBuys;
   final double monthlyDependingInvestmentSales;
 
+  /// Netto zurückgelegt durch ausstehende Buchungen (gleiche Berechnung wie die Karte "Zurückgelegt").
+  final double monthlyDependingSetAside;
+  final bool showSetAside;
+
   const PendingMonthlyValueCards({
     super.key,
     required this.monthlyDependingExpense,
     required this.monthlyDependingIncome,
     required this.monthlyDependingInvestmentBuys,
     required this.monthlyDependingInvestmentSales,
+    this.monthlyDependingSetAside = 0.0,
+    this.showSetAside = false,
   });
 
   @override
@@ -39,6 +45,12 @@ class _PendingMonthlyValueCardsState extends State<PendingMonthlyValueCards> {
             pendingMonthlyValue: widget.monthlyDependingExpense,
             textColor: Colors.redAccent,
           ),
+          if (widget.showSetAside)
+            PendingMonthlyCard(
+              title: AppLocalizations.of(context).translate('zurückgelegt'),
+              pendingMonthlyValue: widget.monthlyDependingSetAside,
+              textColor: Colors.amberAccent,
+            ),
           PendingMonthlyCard(
             title: AppLocalizations.of(context).translate('käufe'),
             pendingMonthlyValue: widget.monthlyDependingInvestmentBuys,

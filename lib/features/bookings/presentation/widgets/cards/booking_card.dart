@@ -18,13 +18,20 @@ class BookingCard extends StatelessWidget {
   final bool activateEditing;
   // Namen der aus dem Vermögen ausgeschlossenen Konten, um Überträge dorthin / von dort zu kennzeichnen.
   final Set<String> excludedAccountNames;
+  // Konten abgeschlossener / gelöschter Ziele: Buchungen damit sind Historie und nicht mehr bearbeitbar,
+  // sonst würde Geld auf ein nicht mehr sichtbares Konto gebucht.
+  final Set<String> lockedAccountNames;
 
   const BookingCard({
     super.key,
     required this.booking,
     this.activateEditing = true,
     this.excludedAccountNames = const {},
+    this.lockedAccountNames = const {},
   });
+
+  bool get _isEditable =>
+      activateEditing && !lockedAccountNames.contains(booking.fromAccount) && !lockedAccountNames.contains(booking.toAccount);
 
   Color _getBookingTypeColor() {
     if (booking.type == BookingType.expense) {
@@ -123,7 +130,7 @@ class BookingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: activateEditing
+      onTap: _isEditable
           ? () => booking.repetition == RepetitionType.noRepetition
               ? Navigator.pushNamed(context, editBookingRoute, arguments: EditBookingPageArguments(booking, SerieModeType.one))
               : _openSerieBookingBottomSheet(context)

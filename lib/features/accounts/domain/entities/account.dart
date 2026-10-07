@@ -12,6 +12,14 @@ class Account extends Equatable {
   /// Ausgeschlossene Konten gelten als "zurückgelegtes" Geld, das nicht zum verfügbaren Vermögen zählt.
   final bool includeInNetWorth;
 
+  /// Id des Sparziels, zu dem dieses Konto gehört. 0 = normales Konto.
+  /// Ziel-Konten sind immer aus dem Vermögen ausgeschlossen und erscheinen nicht in der Kontenliste.
+  final int goalId;
+
+  /// Archivierte Konten (abgeschlossene oder gelöschte Ziele) bleiben in der Datenbank, damit
+  /// vergangene Überträge weiterhin richtig eingeordnet werden, werden aber nirgends mehr angeboten.
+  final bool archived;
+
   const Account({
     required this.id,
     required this.type,
@@ -19,10 +27,14 @@ class Account extends Equatable {
     required this.amount,
     required this.currency,
     this.includeInNetWorth = true,
+    this.goalId = 0,
+    this.archived = false,
   });
 
-  /// Liest ein Konto aus einer Datenbankzeile. Fehlt die Spalte includeInNetWorth (z.B. alte Datenbank),
-  /// wird das Konto standardmäßig in die Vermögensberechnung einbezogen.
+  bool get isGoalAccount => goalId != 0;
+
+  /// Liest ein Konto aus einer Datenbankzeile. Fehlen die neuen Spalten (z.B. alte Datenbank),
+  /// wird das Konto als normales, einbezogenes Konto behandelt.
   factory Account.fromDbMap(Map account) {
     return Account(
       id: account['id'],
@@ -31,6 +43,8 @@ class Account extends Equatable {
       amount: (account['amount'] as num).toDouble(),
       currency: account['currency'],
       includeInNetWorth: account['includeInNetWorth'] != 0,
+      goalId: (account['goalId'] as int?) ?? 0,
+      archived: ((account['archived'] as int?) ?? 0) != 0,
     );
   }
 
@@ -41,6 +55,8 @@ class Account extends Equatable {
     double? amount,
     String? currency,
     bool? includeInNetWorth,
+    int? goalId,
+    bool? archived,
   }) {
     return Account(
       id: id ?? this.id,
@@ -49,9 +65,11 @@ class Account extends Equatable {
       amount: amount ?? this.amount,
       currency: currency ?? this.currency,
       includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+      goalId: goalId ?? this.goalId,
+      archived: archived ?? this.archived,
     );
   }
 
   @override
-  List<Object> get props => [id, type, name, amount, currency, includeInNetWorth];
+  List<Object> get props => [id, type, name, amount, currency, includeInNetWorth, goalId, archived];
 }

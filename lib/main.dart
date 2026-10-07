@@ -37,7 +37,9 @@ import 'features/calculators/presentation/pages/how_long_live_of_capital_calcula
 import 'features/categories/presentation/bloc/categorie_bloc.dart';
 import 'features/goals/presentation/bloc/goal_bloc.dart';
 import 'features/goals/presentation/pages/create_goal_page.dart';
-import 'features/goals/presentation/pages/goal_overview_page.dart';
+import 'features/goals/presentation/pages/goal_action_page.dart';
+import 'features/goals/presentation/pages/goal_detail_page.dart';
+import 'features/goals/presentation/widgets/page_arguments/goal_page_arguments.dart';
 import 'features/settings/presentation/pages/bug_report_page.dart';
 import 'features/settings/presentation/pages/currency_converter_page.dart';
 import 'features/settings/presentation/pages/feedback_page.dart';
@@ -143,7 +145,8 @@ class _MyAppState extends State<MyApp> {
         calculatorOverviewRoute: (context) => const CalculatorOverviewPage(),
         howLongLiveOfCapitalCalculatorRoute: (context) => const HowLongLiveOfCapitalCalculatorPage(),
         financialFreedomCalculatorRoute: (context) => const FinancialFreedomCalculatorPage(),
-        goalOverviewRoute: (context) => const GoalOverviewPage(),
+        // Die Ziele sind jetzt ein eigener Tab der Hauptseite.
+        goalOverviewRoute: (context) => BottomNavBar(tabIndex: goalsTabIndex),
       },
       onGenerateRoute: (RouteSettings settings) {
         switch (settings.name) {
@@ -190,6 +193,24 @@ class _MyAppState extends State<MyApp> {
                 budget: args.budget,
                 serieMode: args.serieMode,
               ),
+              settings: settings,
+            );
+          case goalDetailRoute:
+            final args = settings.arguments as GoalPageArguments;
+            return MaterialPageRoute<String>(
+              builder: (context) => GoalDetailPage(goal: args.goal),
+              settings: settings,
+            );
+          case editGoalRoute:
+            final args = settings.arguments as GoalPageArguments;
+            return MaterialPageRoute<String>(
+              builder: (context) => CreateGoalPage(goal: args.goal),
+              settings: settings,
+            );
+          case goalActionRoute:
+            final args = settings.arguments as GoalActionPageArguments;
+            return MaterialPageRoute<String>(
+              builder: (context) => GoalActionPage(goal: args.goal, mode: args.mode),
               settings: settings,
             );
           case categorieStatisticRoute:

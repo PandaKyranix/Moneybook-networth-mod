@@ -38,9 +38,13 @@ NetWorthSummary calculateNetWorth(List<Account> accounts) {
   double excludedTotal = 0.0;
   int excludedCount = 0;
   for (final account in accounts) {
-    if (!account.includeInNetWorth) {
+    if (!account.includeInNetWorth || account.isGoalAccount || account.archived) {
+      // Ziel-Konten sind immer zurückgelegtes Geld. Archivierte Konten (abgeschlossene / gelöschte Ziele)
+      // haben Kontostand 0 und werden nicht mehr mitgezählt, bleiben aber für die Historie bestehen.
       excludedTotal += account.amount;
-      excludedCount++;
+      if (!account.archived) {
+        excludedCount++;
+      }
     } else if (account.type == AccountType.credit || account.amount < 0.0) {
       debts += account.amount.abs();
     } else {
@@ -48,6 +52,19 @@ NetWorthSummary calculateNetWorth(List<Account> accounts) {
     }
   }
   return NetWorthSummary(assets: assets, debts: debts, excludedTotal: excludedTotal, excludedCount: excludedCount);
+}
+
+/// Kontostandsänderungen einer gebuchten Buchung, genau wie in AccountLocalDataSource:
+/// Ausgabe = withdraw(fromAccount), Einnahme = deposit(fromAccount), Übertrag / Investition = transfer(from -> to).
+Map<String, double> accountBalanceChanges(Booking booking) {
+  return switch (booking.type) {
+    BookingType.expense => <String, double>{booking.fromAccount: -booking.amount},
+    BookingType.income => <String, double>{booking.fromAccount: booking.amount},
+    BookingType.transfer || BookingType.investment => booking.fromAccount == booking.toAccount
+        ? <String, double>{}
+        : <String, double>{booking.fromAccount: -booking.amount, booking.toAccount: booking.amount},
+    BookingType.none => <String, double>{},
+  };
 }
 
 /// Wirkung eines Übertrags auf das verfügbare (einbezogene) Vermögen.
@@ -67,9 +84,10 @@ enum TransferFlow {
 
 /// Bestimmt anhand der *aktuellen* Einstellung der Konten, wie ein Übertrag wirkt.
 /// Die Buchung selbst bleibt unverändert ein Übertrag. Konten, die nicht (mehr) existieren,
-/// gelten als einbezogen.
+/// gelten als einbezogen. Investitionen bewegen Geld genauso von Konto zu Konto
+/// (AccountLocalDataSource.transfer) und werden deshalb gleich behandelt.
 TransferFlow classifyTransfer(Booking booking, Set<String> excludedAccountNames) {
-  if (booking.type != BookingType.transfer) {
+  if (booking.type != BookingType.transfer && booking.type != BookingType.investment) {
     return TransferFlow.notATransfer;
   }
   final bool fromExcluded = excludedAccountNames.contains(booking.fromAccount);
@@ -82,21 +100,44 @@ TransferFlow classifyTransfer(Booking booking, Set<String> excludedAccountNames)
   return TransferFlow.internal;
 }
 
-/// Netto zurückgelegter Betrag einer Buchungsliste: zurückgelegt minus freigegeben.
+/// Veränderung des zurückgelegten Geldes (Summe aller ausgeschlossenen Konten inkl. Ziel-Konten),
+/// die eine einzelne Buchung bewirkt. Positiv = es wurde Geld zurückgelegt.
+///
+/// - Übertrag / Investition einbezogen -> ausgeschlossen: +Betrag (zurückgelegt)
+/// - Übertrag / Investition ausgeschlossen -> einbezogen: -Betrag (freigegeben)
+/// - Einnahme direkt auf ein ausgeschlossenes Konto: +Betrag
+/// - Ausgabe direkt von einem ausgeschlossenen Konto (z.B. "Gekauft" bei einem Ziel): -Betrag
+///
+/// Dadurch gilt immer: Saldo = Einnahmen - Ausgaben - Zurückgelegt = Veränderung des verfügbaren Geldes.
+/// Eine Ausgabe, die mit bereits zurückgelegtem Geld bezahlt wird, zählt so als Ausgabe (und im Budget),
+/// verringert den Saldo aber nicht ein zweites Mal.
+double reservedChange(Booking booking, Set<String> excludedAccountNames) {
+  return switch (booking.type) {
+    BookingType.transfer || BookingType.investment => switch (classifyTransfer(booking, excludedAccountNames)) {
+        TransferFlow.setAside => booking.amount,
+        TransferFlow.released => -booking.amount,
+        TransferFlow.internal || TransferFlow.notATransfer => 0.0,
+      },
+    BookingType.income => excludedAccountNames.contains(booking.fromAccount) ? booking.amount : 0.0,
+    BookingType.expense => excludedAccountNames.contains(booking.fromAccount) ? -booking.amount : 0.0,
+    BookingType.none => 0.0,
+  };
+}
+
+/// Veränderung des verfügbaren Geldes (Summe aller einbezogenen Konten) durch eine Buchung.
+/// Grundlage für den Saldo, die Saldo-Linie und die Jahresübersicht.
+double availableChange(Booking booking, Set<String> excludedAccountNames) {
+  final double income = booking.type == BookingType.income ? booking.amount : 0.0;
+  final double expense = booking.type == BookingType.expense ? booking.amount : 0.0;
+  return income - expense - reservedChange(booking, excludedAccountNames);
+}
+
+/// Netto zurückgelegter Betrag einer Buchungsliste: zurückgelegt minus freigegeben
+/// minus von zurückgelegtem Geld bezahlt (siehe [reservedChange]).
 double calculateNetSetAside(Iterable<Booking> bookings, Set<String> excludedAccountNames) {
   double net = 0.0;
   for (final booking in bookings) {
-    switch (classifyTransfer(booking, excludedAccountNames)) {
-      case TransferFlow.setAside:
-        net += booking.amount;
-        break;
-      case TransferFlow.released:
-        net -= booking.amount;
-        break;
-      case TransferFlow.internal:
-      case TransferFlow.notATransfer:
-        break;
-    }
+    net += reservedChange(booking, excludedAccountNames);
   }
   return net;
 }

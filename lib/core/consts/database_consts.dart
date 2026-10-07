@@ -28,7 +28,7 @@ void switchDemoMode(bool demoMode) {
   categorieDbName = demoMode == false ? 'categories' : 'categories_demo';
   budgetDbName = demoMode == false ? 'budgets' : 'budgets_demo';
   userDbName = demoMode == false ? 'user' : 'user_demo';
-  String goalDbName = demoMode == false ? 'goals' : 'goals_demo';
+  goalDbName = demoMode == false ? 'goals' : 'goals_demo';
 
   localDbVersion = demoMode == false ? 7 : 7;
 }

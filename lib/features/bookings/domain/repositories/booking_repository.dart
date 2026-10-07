@@ -15,6 +15,7 @@ abstract class BookingRepository {
   Future<Either<Failure, void>> deleteOnlyFutureBookingsInSerie(int serieId, DateTime from);
   Future<Either<Failure, Booking>> load(int id);
   Future<Either<Failure, List<Booking>>> loadSortedMonthly(DateTime selectedDate);
+  Future<Either<Failure, List<Booking>>> loadBookingsBetween(DateTime from, DateTime to);
   Future<Either<Failure, List<Booking>>> loadMonthlyAmountTypeBookings(DateTime selectedDate, AmountType amountType);
   Future<Either<Failure, List<Booking>>> loadCategorieBookings(String categorie);
   Future<Either<Failure, List<Booking>>> loadPastMonthlyCategorieBookings(String categorie, BookingType bookingType, DateTime date, int monthNumber);

@@ -19,6 +19,8 @@ openAccountBottomSheet({
   required TextEditingController controller,
   required Function(String)? onAccountSelected,
   List<String> accountNameFilter = const [],
+  // Ziel-Konten (Sparziele) werden nur bei Überträgen angeboten.
+  bool allowGoalAccounts = false,
 }) {
   loadAccountsWithFilter(context, accountNameFilter);
   showCupertinoModalBottomSheet<void>(
@@ -45,14 +47,18 @@ openAccountBottomSheet({
                             crossAxisCount: 3,
                             shrinkWrap: true,
                             childAspectRatio: 1.6,
-                            children: state.filteredAccounts.map((account) {
+                            children: state.filteredAccounts
+                                // Archivierte Konten (abgeschlossene Ziele) werden nie angeboten.
+                                .where((account) => !account.archived && (allowGoalAccounts || !account.isGoalAccount))
+                                .map((account) {
                               return GridViewButton(
                                 onPressed: () => {
                                   onAccountSelected!(account.name),
                                   _setAccount(context, account.name, controller),
                                 },
                                 text: account.name,
-                                showLock: !account.includeInNetWorth,
+                                showLock: !account.includeInNetWorth && !account.isGoalAccount,
+                                showGoal: account.isGoalAccount,
                               );
                             }).toList(),
                           ),

@@ -9,6 +9,7 @@ class AccountInputField extends StatelessWidget {
   final Function(String)? onAccountSelected;
   final List<String> accountNameFilter;
   final String bottomSheetTitle;
+  final bool allowGoalAccounts;
 
   const AccountInputField({
     super.key,
@@ -17,6 +18,7 @@ class AccountInputField extends StatelessWidget {
     this.onAccountSelected,
     this.accountNameFilter = const [],
     this.bottomSheetTitle = 'Konto auswählen:',
+    this.allowGoalAccounts = false,
   });
 
   String? _checkAccountInput(BuildContext context) {
@@ -40,6 +42,7 @@ class AccountInputField extends StatelessWidget {
         controller: accountController,
         onAccountSelected: onAccountSelected,
         accountNameFilter: accountNameFilter,
+        allowGoalAccounts: allowGoalAccounts,
       ),
       decoration: InputDecoration(
         hintText: hintText,

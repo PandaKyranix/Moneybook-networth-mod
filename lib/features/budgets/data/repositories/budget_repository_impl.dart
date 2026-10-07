@@ -19,6 +19,17 @@ class BudgetRepositoryImpl implements BudgetRepository {
   });
 
   @override
+  Future<Either<Failure, List<BudgetModel>>> loadBetween(DateTime from, DateTime to) async {
+    try {
+      return Right(await budgetLocalDataSource.loadBetween(from, to));
+    } on ServerException {
+      return Left(ServerFailure());
+    } catch (_) {
+      return Left(CacheFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> create(Budget budget) async {
     try {
       return Right(await budgetLocalDataSource.create(budget));

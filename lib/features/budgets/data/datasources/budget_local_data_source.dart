@@ -12,6 +12,7 @@ abstract class BudgetLocalDataSource {
   Future<void> delete(Budget budget, SerieModeType serieMode);
   Future<BudgetModel> load(Budget budget);
   Future<List<BudgetModel>> loadMonthly(DateTime selectedDate);
+  Future<List<BudgetModel>> loadBetween(DateTime from, DateTime to);
   Future<void> updateAllBudgetsWithCategorie(String oldCategorie, String newCategorie);
 }
 
@@ -113,6 +114,29 @@ class BudgetLocalDataSourceImpl implements BudgetLocalDataSource {
         .toList();
     budgetList.sort((first, second) => second.percentage.compareTo(first.percentage));
     return budgetList;
+  }
+
+  /// Alle Budget-Einträge von [from] bis einschließlich [to], z.B. für das Jahresbudget.
+  @override
+  Future<List<BudgetModel>> loadBetween(DateTime from, DateTime to) async {
+    db = await openDatabase(localDbName);
+    final String startDate = dateFormatterYYYYMMDD.format(from);
+    final String endDate = dateFormatterYYYYMMDD.format(to);
+    List<Map> budgetMap = await db.rawQuery('SELECT * FROM $budgetDbName WHERE substr(date, 1, 10) BETWEEN ? AND ?', [startDate, endDate]);
+    return budgetMap
+        .map(
+          (budget) => BudgetModel(
+            id: budget['id'],
+            categorie: budget['categorie'],
+            amount: (budget['amount'] as num).toDouble(),
+            date: DateTime.parse(budget['date']),
+            currency: budget['currency'],
+            used: (budget['used'] as num).toDouble(),
+            remaining: (budget['remaining'] as num).toDouble(),
+            percentage: (budget['percentage'] as num).toDouble(),
+          ),
+        )
+        .toList();
   }
 
   @override

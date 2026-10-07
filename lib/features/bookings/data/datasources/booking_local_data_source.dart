@@ -18,6 +18,7 @@ abstract class BookingLocalDataSource {
   Future<void> deleteOnlyFutureBookingsInSerie(int serieId, DateTime from);
   Future<Booking> load(int id);
   Future<List<Booking>> loadSortedMonthly(DateTime selectedDate);
+  Future<List<Booking>> loadBookingsBetween(DateTime from, DateTime to);
   Future<List<Booking>> loadMonthlyAmountTypeBookings(DateTime selectedDate, AmountType amountType);
   Future<List<Booking>> loadCategorieBookings(String categorie);
   Future<List<Booking>> loadPastMonthlyCategorieBookings(String categorie, BookingType bookingType, DateTime date, int monthNumber);
@@ -31,8 +32,39 @@ abstract class BookingLocalDataSource {
   Future<void> translate(BuildContext context);
 }
 
+/// Liest eine Buchung aus einer Datenbankzeile (gleiche Abbildung wie in den übrigen Abfragen).
+Booking bookingFromDbMap(Map booking) {
+  return Booking(
+    id: booking['id'],
+    serieId: booking['serieId'],
+    type: BookingType.fromString(booking['type']),
+    title: booking['title'],
+    date: DateTime.parse(booking['date']),
+    repetition: RepetitionType.fromString(booking['repetition']),
+    amount: (booking['amount'] as num).toDouble(),
+    amountType: AmountType.fromString(booking['amountType']),
+    currency: booking['currency'],
+    fromAccount: booking['fromAccount'],
+    toAccount: booking['toAccount'],
+    categorie: booking['categorie'],
+    isBooked: booking['isBooked'] == 0 ? false : true,
+  );
+}
+
 class BookingLocalDataSourceImpl implements BookingLocalDataSource {
   BookingLocalDataSourceImpl();
+
+  /// Alle Buchungen von [from] bis einschließlich [to] (nur Datum), z.B. für die Jahresübersicht.
+  @override
+  Future<List<Booking>> loadBookingsBetween(DateTime from, DateTime to) async {
+    db = await openDatabase(localDbName);
+    final String startDate = dateFormatterYYYYMMDD.format(from);
+    final String endDate = dateFormatterYYYYMMDD.format(to);
+    List<Map> bookingMap = await db.rawQuery('SELECT * FROM $bookingDbName WHERE substr(date, 1, 10) BETWEEN ? AND ?', [startDate, endDate]);
+    List<Booking> bookingList = bookingMap.map((booking) => bookingFromDbMap(booking)).toList();
+    bookingList.sort((first, second) => second.date.compareTo(first.date));
+    return bookingList;
+  }
 
   @override
   Future<void> create(Booking booking) async {
@@ -51,7 +83,11 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
         booking.fromAccount,
         booking.toAccount,
         booking.categorie,
-        booking.isBooked,
+        // Serienbuchungen werden als Kopie der ersten Buchung angelegt und übernahmen deren isBooked-Wert.
+        // Zukünftige Termine einer Serie, die heute beginnt, wurden dadurch als "gebucht" gespeichert und
+        // später nie auf den Kontostand angerechnet. Zukünftige Buchungen sind deshalb immer ungebucht;
+        // calculateAndUpdateNewBookings bucht sie, sobald ihr Datum erreicht ist.
+        booking.isBooked && !booking.date.isAfter(DateTime.now()) ? 1 : 0,
       ],
     );
   }

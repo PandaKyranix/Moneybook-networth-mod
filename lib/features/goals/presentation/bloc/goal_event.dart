@@ -23,27 +23,34 @@ class UpdateGoal extends GoalEvent {
   List<Object?> get props => [goal];
 }
 
-class DeleteGoal extends GoalEvent {
-  final int goalId;
-
-  const DeleteGoal(this.goalId);
-
-  @override
-  List<Object?> get props => [goalId];
-}
-
-class LoadGoal extends GoalEvent {
-  final int goalId;
-
-  const LoadGoal(this.goalId);
-
-  @override
-  List<Object?> get props => [goalId];
-}
-
 class LoadAllGoals extends GoalEvent {
   const LoadAllGoals();
 
   @override
   List<Object?> get props => [];
+}
+
+/// Übertrag von einem Konto auf das Ziel-Konto.
+class AddMoneyToGoal extends GoalEvent {
+  final Goal goal;
+  final String fromAccount;
+  final double amount;
+
+  const AddMoneyToGoal({required this.goal, required this.fromAccount, required this.amount});
+
+  @override
+  List<Object?> get props => [goal, fromAccount, amount];
+}
+
+/// Ziel abschließen ("Gekauft" / "Erreicht") oder löschen.
+class CloseGoal extends GoalEvent {
+  final Goal goal;
+  final GoalCloseAction action;
+  final String? targetAccountName;
+  final String categorie;
+
+  const CloseGoal({required this.goal, required this.action, this.targetAccountName, this.categorie = ''});
+
+  @override
+  List<Object?> get props => [goal, action, targetAccountName, categorie];
 }

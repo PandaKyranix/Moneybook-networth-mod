@@ -10,20 +10,29 @@ import '../../../../core/consts/common_consts.dart';
 import '../../../../core/utils/account_schema.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../shared/domain/value_objects/period_mode.dart';
 import '../../../accounts/domain/services/net_worth_calculator.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/value_objects/amount_type.dart';
 import '../../domain/value_objects/booking_type.dart';
 import '../bloc/booking_bloc.dart';
 import '../widgets/cards/pending_monthly_value_cards.dart';
+import '../widgets/charts/monthly_saldo_line_chart.dart';
+import '../widgets/list_views/yearly_booking_overview.dart';
 import '../widgets/deco/daily_report_summary.dart';
 
 class BookingListPage extends StatefulWidget {
   DateTime selectedDate;
+  final PeriodMode periodMode;
+
+  /// Wird in der Jahresansicht aufgerufen, wenn ein Monat angetippt wird.
+  final ValueChanged<DateTime>? onMonthSelected;
 
   BookingListPage({
     super.key,
     required this.selectedDate,
+    this.periodMode = PeriodMode.month,
+    this.onMonthSelected,
   });
 
   @override
@@ -48,7 +57,10 @@ class _BookingListPageState extends State<BookingListPage> {
   bool _isExpanded = false;
   // Namen der Konten, die aus der Vermögensberechnung ausgeschlossen sind (zurückgelegtes Geld).
   Set<String> _excludedAccountNames = {};
+  // Konten abgeschlossener Ziele: deren Buchungen sind nicht mehr bearbeitbar.
+  Set<String> _archivedAccountNames = {};
   double _monthlySetAside = 0.0;
+  double _monthlyDependingSetAside = 0.0;
 
   @override
   void initState() {
@@ -58,9 +70,11 @@ class _BookingListPageState extends State<BookingListPage> {
 
   Future<void> _loadExcludedAccountNames() async {
     final Set<String> excludedAccountNames = await loadExcludedAccountNames();
-    if (mounted && !setEquals(excludedAccountNames, _excludedAccountNames)) {
+    final Set<String> archivedAccountNames = await loadArchivedAccountNames();
+    if (mounted && (!setEquals(excludedAccountNames, _excludedAccountNames) || !setEquals(archivedAccountNames, _archivedAccountNames))) {
       setState(() {
         _excludedAccountNames = excludedAccountNames;
+        _archivedAccountNames = archivedAccountNames;
       });
     }
   }
@@ -134,10 +148,20 @@ class _BookingListPageState extends State<BookingListPage> {
       bookings.where((booking) => booking.date.isAfter(DateTime.now()) == false),
       _excludedAccountNames,
     );
+    // Gleiche Berechnung für die ausstehenden Buchungen des Monats.
+    _monthlyDependingSetAside = calculateNetSetAside(_dependingBookings, _excludedAccountNames);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.periodMode == PeriodMode.year) {
+      return YearlyBookingOverview(
+        year: widget.selectedDate.year,
+        excludedAccountNames: _excludedAccountNames,
+        showSetAside: _excludedAccountNames.isNotEmpty,
+        onMonthSelected: widget.onMonthSelected,
+      );
+    }
     _loadBookings(context);
     return Scaffold(
       body: Column(
@@ -167,13 +191,22 @@ class _BookingListPageState extends State<BookingListPage> {
                                 key: ValueKey(state.bookings.length),
                                 child: ListView.builder(
                                   shrinkWrap: true,
-                                  itemCount: state.bookings.length,
+                                  // Erstes Element: Saldo-Verlauf des Monats, danach die Buchungen.
+                                  itemCount: state.bookings.length + 1,
                                   itemBuilder: (BuildContext context, int index) {
-                                    final booking = state.bookings[index];
+                                    if (index == 0) {
+                                      return MonthlySaldoLineChart(
+                                        bookings: state.bookings,
+                                        excludedAccountNames: _excludedAccountNames,
+                                        selectedDate: widget.selectedDate,
+                                      );
+                                    }
+                                    final int bookingIndex = index - 1;
+                                    final booking = state.bookings[bookingIndex];
 
                                     if (booking.date.isBefore(DateTime.now())) {
                                       _numberOfBookedBookings++;
-                                      final bool isNewDateGroup = index == 0 || state.bookings[index - 1].date != booking.date;
+                                      final bool isNewDateGroup = bookingIndex == 0 || state.bookings[bookingIndex - 1].date != booking.date;
                                       return AnimationConfiguration.staggeredList(
                                         position: index,
                                         duration: Duration(milliseconds: staggeredListDurationInMs),
@@ -189,7 +222,7 @@ class _BookingListPageState extends State<BookingListPage> {
                                                     leftValue: _dailyIncomeMap[booking.date],
                                                     rightValue: _dailyExpenseMap[booking.date],
                                                   ),
-                                                BookingCard(booking: booking, excludedAccountNames: _excludedAccountNames),
+                                                BookingCard(booking: booking, excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames),
                                               ],
                                             ),
                                           ),
@@ -197,7 +230,7 @@ class _BookingListPageState extends State<BookingListPage> {
                                       );
                                     }
 
-                                    if (_numberOfBookedBookings == 0 && index == state.bookings.length - 1) {
+                                    if (_numberOfBookedBookings == 0 && bookingIndex == state.bookings.length - 1) {
                                       return SizedBox(
                                         height: MediaQuery.sizeOf(context).height / 1.5,
                                         child: EmptyList(
@@ -265,6 +298,8 @@ class _BookingListPageState extends State<BookingListPage> {
                                   monthlyDependingIncome: _monthlyDependingIncome,
                                   monthlyDependingInvestmentBuys: _monthlyDependingInvestmentBuys,
                                   monthlyDependingInvestmentSales: _monthlyDependingInvestmentSales,
+                                  monthlyDependingSetAside: _monthlyDependingSetAside,
+                                  showSetAside: _excludedAccountNames.isNotEmpty,
                                 ),
                                 const Padding(
                                   padding: EdgeInsets.only(top: 8.0, bottom: 4.0),
@@ -296,11 +331,11 @@ class _BookingListPageState extends State<BookingListPage> {
                                                       leftValue: _dailyIncomeMap[_dependingBookings[index].date],
                                                       rightValue: _dailyExpenseMap[_dependingBookings[index].date],
                                                     ),
-                                                    BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames),
+                                                    BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames),
                                                   ],
                                                 );
                                               } else {
-                                                return BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames);
+                                                return BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames);
                                               }
                                             }
                                             return const SizedBox();

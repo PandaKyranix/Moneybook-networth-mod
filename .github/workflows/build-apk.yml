@@ -37,8 +37,12 @@ jobs:
           PROPS
 
       - run: flutter pub get
-      - name: Unit tests for the net-worth logic
-        run: flutter test test/features/accounts
+      # Lists compile errors and warnings in a readable form. The APK build below fails anyway on real errors.
+      - name: Analyze (errors only block the build step below)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib test/features/accounts test/features/bookings/saldo_calculator_test.dart test/features/budgets test/features/goals test/shared test/helpers
+        continue-on-error: true
+      - name: Unit tests (net worth, saldo, budgets, goals, navigation)
+        run: flutter test test/features/accounts test/features/bookings/saldo_calculator_test.dart test/features/budgets test/features/goals test/shared
         # A test problem should not stop the APK from being built; check this step's log.
         continue-on-error: true
       - run: flutter build apk --release --split-per-abi

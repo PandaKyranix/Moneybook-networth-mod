@@ -22,3 +22,6 @@ const howLongLiveOfCapitalCalculatorRoute = 'howLongLiveOfCapitalCalculator';
 const financialFreedomCalculatorRoute = 'financialFreedomCalculator';
 const goalOverviewRoute = 'goalOverview';
 const createGoalRoute = 'createGoal';
+const goalDetailRoute = 'goalDetail';
+const editGoalRoute = 'editGoal';
+const goalActionRoute = 'goalAction';

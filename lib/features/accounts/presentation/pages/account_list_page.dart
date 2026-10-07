@@ -67,13 +67,20 @@ class _AccountListPageState extends State<AccountListPage> {
       body: BlocBuilder<AccountBloc, AccountState>(
         builder: (context, state) {
           if (state is Loaded) {
-            if (state.accounts.isEmpty) {
+            // Ziel-Konten (Sparziele) und archivierte Konten erscheinen nicht in der Kontenliste; ihr Geld
+            // ist aber in der Zeile "Zurückgelegt" der Übersicht enthalten.
+            final List<Account> visibleAccounts = state.accounts.where((account) => !account.isGoalAccount && !account.archived).toList();
+            if (visibleAccounts.isEmpty) {
+              // Auch ohne sichtbare Konten kann Geld in Zielen liegen.
+              _calculateOverviewValues(state.accounts);
               return Column(
                 children: [
                   OverviewCards(
                     accounts: state.accounts,
-                    assets: 0,
-                    debts: 0,
+                    assets: _assets,
+                    debts: _debts,
+                    excludedTotal: _excludedTotal,
+                    excludedCount: _excludedCount,
                   ),
                   CreateRow(
                     title: AppLocalizations.of(context).translate('konten'),
@@ -91,7 +98,7 @@ class _AccountListPageState extends State<AccountListPage> {
               );
             } else {
               _calculateOverviewValues(state.accounts);
-              _calculateAccountTypeAmounts(state.accounts);
+              _calculateAccountTypeAmounts(visibleAccounts);
               return Column(
                 children: [
                   OverviewCards(
@@ -109,9 +116,9 @@ class _AccountListPageState extends State<AccountListPage> {
                   ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: state.accounts.length,
+                      itemCount: visibleAccounts.length,
                       itemBuilder: (BuildContext context, int index) {
-                        if (index == 0 || state.accounts[index - 1].type != state.accounts[index].type) {
+                        if (index == 0 || visibleAccounts[index - 1].type != visibleAccounts[index].type) {
                           return AnimationConfiguration.staggeredList(
                             position: index,
                             duration: Duration(milliseconds: staggeredListDurationInMs),
@@ -127,21 +134,21 @@ class _AccountListPageState extends State<AccountListPage> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(AppLocalizations.of(context).translate(state.accounts[index].type.pluralName),
+                                          Text(AppLocalizations.of(context).translate(visibleAccounts[index].type.pluralName),
                                               style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-                                          Text(formatToMoneyAmount(_accountTypeAmounts[state.accounts[index].type].toString()),
+                                          Text(formatToMoneyAmount(_accountTypeAmounts[visibleAccounts[index].type].toString()),
                                               style: const TextStyle(fontWeight: FontWeight.bold)),
                                         ],
                                       ),
                                     ),
-                                    AccountCard(account: state.accounts[index]),
+                                    AccountCard(account: visibleAccounts[index]),
                                   ],
                                 ),
                               ),
                             ),
                           );
                         } else {
-                          return AccountCard(account: state.accounts[index]);
+                          return AccountCard(account: visibleAccounts[index]);
                         }
                       },
                     ),
@@ -157,13 +164,19 @@ class _AccountListPageState extends State<AccountListPage> {
             // TODO erstellen abbrechen möchte Dialog anzeigen und dann dort Loaded Status
             // TODO setzen über LoadAccounts Event?
           } else if (state is FilteredLoaded) {
-            if (state.filteredAccounts.isEmpty) {
+            final List<Account> visibleAccounts =
+                state.filteredAccounts.where((account) => !account.isGoalAccount && !account.archived).toList();
+            if (visibleAccounts.isEmpty) {
+              // Auch ohne sichtbare Konten kann Geld in Zielen liegen.
+              _calculateOverviewValues(state.filteredAccounts);
               return Column(
                 children: [
                   OverviewCards(
                     accounts: state.filteredAccounts,
-                    assets: 0,
-                    debts: 0,
+                    assets: _assets,
+                    debts: _debts,
+                    excludedTotal: _excludedTotal,
+                    excludedCount: _excludedCount,
                   ),
                   CreateRow(
                     title: AppLocalizations.of(context).translate('konten'),
@@ -181,7 +194,7 @@ class _AccountListPageState extends State<AccountListPage> {
               );
             } else {
               _calculateOverviewValues(state.filteredAccounts);
-              _calculateAccountTypeAmounts(state.filteredAccounts);
+              _calculateAccountTypeAmounts(visibleAccounts);
               return Column(
                 children: [
                   OverviewCards(
@@ -199,9 +212,9 @@ class _AccountListPageState extends State<AccountListPage> {
                   ),
                   Expanded(
                     child: ListView.builder(
-                      itemCount: state.filteredAccounts.length,
+                      itemCount: visibleAccounts.length,
                       itemBuilder: (BuildContext context, int index) {
-                        if (index == 0 || state.filteredAccounts[index - 1].type != state.filteredAccounts[index].type) {
+                        if (index == 0 || visibleAccounts[index - 1].type != visibleAccounts[index].type) {
                           return AnimationConfiguration.staggeredList(
                             position: index,
                             duration: Duration(milliseconds: staggeredListDurationInMs),
@@ -217,21 +230,21 @@ class _AccountListPageState extends State<AccountListPage> {
                                       child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(AppLocalizations.of(context).translate(state.filteredAccounts[index].type.pluralName),
+                                          Text(AppLocalizations.of(context).translate(visibleAccounts[index].type.pluralName),
                                               style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
-                                          Text(formatToMoneyAmount(_accountTypeAmounts[state.filteredAccounts[index].type].toString()),
+                                          Text(formatToMoneyAmount(_accountTypeAmounts[visibleAccounts[index].type].toString()),
                                               style: const TextStyle(fontWeight: FontWeight.bold)),
                                         ],
                                       ),
                                     ),
-                                    AccountCard(account: state.filteredAccounts[index]),
+                                    AccountCard(account: visibleAccounts[index]),
                                   ],
                                 ),
                               ),
                             ),
                           );
                         } else {
-                          return AccountCard(account: state.filteredAccounts[index]);
+                          return AccountCard(account: visibleAccounts[index]);
                         }
                       },
                     ),

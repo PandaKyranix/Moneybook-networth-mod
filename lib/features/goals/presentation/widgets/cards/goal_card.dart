@@ -1,118 +1,111 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:moneybook/core/utils/date_formatter.dart';
-import 'package:moneybook/core/utils/number_formatter.dart';
-import 'package:percent_indicator/multi_segment_linear_indicator.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 
+import '../../../../../core/utils/app_localizations.dart';
+import '../../../../../core/utils/date_formatter.dart';
+import '../../../../../core/utils/number_formatter.dart';
 import '../../../domain/entities/goal.dart';
+import '../../../domain/services/goal_calculator.dart';
 
-class GoalCard extends StatefulWidget {
+/// Übersichtskarte eines Sparziels: gespart / Ziel, Fortschrittsbalken, Deadline und benötigte Sparrate.
+class GoalCard extends StatelessWidget {
   final Goal goal;
+  final VoidCallback? onTap;
 
   const GoalCard({
     super.key,
     required this.goal,
+    this.onTap,
   });
 
-  @override
-  State<GoalCard> createState() => _GoalCardState();
-}
+  static String formatPercent(double progress) => '${(progress * 100.0).toStringAsFixed(1).replaceAll('.', ',')} %';
 
-class _GoalCardState extends State<GoalCard> {
   @override
   Widget build(BuildContext context) {
+    final GoalMetrics metrics = calculateGoalMetrics(
+      saved: goal.savedAmount,
+      target: goal.goalAmount,
+      deadline: goal.endDate,
+      now: DateTime.now(),
+    );
+    final bool isCompleted = goal.state == GoalStatus.completed;
+    final Color accentColor = isCompleted
+        ? Colors.grey.shade500
+        : metrics.isReached
+            ? Colors.greenAccent
+            : Colors.cyanAccent;
+
+    String deadlineText;
+    Color deadlineColor = Colors.grey.shade400;
+    if (isCompleted) {
+      deadlineText = '${AppLocalizations.of(context).translate('abgeschlossen_am')} '
+          '${DateFormatter.dateFormatDDMMYYDateTime(goal.completedDate ?? goal.endDate, context)}';
+    } else if (metrics.isOverdue) {
+      deadlineText = '${AppLocalizations.of(context).translate('deadline')} ${DateFormatter.dateFormatDDMMYYDateTime(goal.endDate, context)}'
+          ' · ${AppLocalizations.of(context).translate('überschritten')}';
+      deadlineColor = Colors.redAccent;
+    } else {
+      deadlineText = '${AppLocalizations.of(context).translate('deadline')} ${DateFormatter.dateFormatDDMMYYDateTime(goal.endDate, context)}'
+          ' · ${AppLocalizations.of(context).translate('noch')} ${max(metrics.daysLeft, 0)} ${AppLocalizations.of(context).translate('tage')}';
+    }
+
     return Card(
       child: ClipPath(
-        clipper: ShapeBorderClipper(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(right: BorderSide(color: Colors.cyanAccent, width: 3.5)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+        clipper: ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0))),
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(border: Border(right: BorderSide(color: accentColor, width: 3.5))),
+            padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 14.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.goal.name,
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Icon(isCompleted ? Icons.check_circle_rounded : Icons.flag_rounded, size: 18.0, color: accentColor),
+                    const SizedBox(width: 8.0),
+                    Expanded(
+                      child: Text(
+                        goal.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 17.0, fontWeight: FontWeight.bold),
+                      ),
                     ),
-                    Text(
-                      '0 Buchungen', // TODO dynamisch machen
-                      textAlign: TextAlign.justify,
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
-                    ),
+                    Text(formatPercent(metrics.progress), style: TextStyle(fontSize: 14.0, color: accentColor)),
                   ],
                 ),
+                const SizedBox(height: 6.0),
                 Text(
-                  '${formatToMoneyAmount(((widget.goal.goalAmount - widget.goal.amount) / widget.goal.endDate.difference(widget.goal.startDate).inDays).toString())} pro Tag für ${widget.goal.endDate.difference(widget.goal.startDate).inDays} Tage',
-                  textAlign: TextAlign.justify,
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
+                  '${formatToMoneyAmount(goal.savedAmount.toString())} / ${formatToMoneyAmount(goal.goalAmount.toString())}',
+                  style: const TextStyle(fontSize: 15.0),
                 ),
-                Divider(
-                  color: Colors.grey,
-                  thickness: 0.8,
-                  height: 16.0,
+                const SizedBox(height: 8.0),
+                LinearPercentIndicator(
+                  padding: EdgeInsets.zero,
+                  lineHeight: 10.0,
+                  barRadius: const Radius.circular(5.0),
+                  percent: min(max(metrics.progress, 0.0), 1.0),
+                  progressColor: accentColor,
+                  backgroundColor: Colors.grey.shade800,
+                  animation: true,
+                  animationDuration: 800,
                 ),
-                SizedBox(height: 8.0),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        DateFormatter.dateFormatDDMMYYDateTime(widget.goal.startDate, context),
-                        textAlign: TextAlign.justify,
-                        style: TextStyle(fontSize: 16.0, color: Colors.grey.shade400),
-                      ),
-                      Text(
-                        DateFormatter.dateFormatDDMMYYDateTime(widget.goal.endDate, context),
-                        textAlign: TextAlign.justify,
-                        style: TextStyle(fontSize: 16.0, color: Colors.grey.shade400),
-                      ),
-                    ],
+                const SizedBox(height: 8.0),
+                Text(deadlineText, style: TextStyle(fontSize: 12.0, color: deadlineColor)),
+                if (!isCompleted) ...[
+                  const SizedBox(height: 2.0),
+                  Text(
+                    metrics.isReached
+                        ? AppLocalizations.of(context).translate('ziel_erreicht_abschließen')
+                        : metrics.requiredPerMonth != null
+                            ? '${AppLocalizations.of(context).translate('noch')} ${formatToMoneyAmount(metrics.remaining.toString())} · '
+                                '${formatToMoneyAmount(metrics.requiredPerMonth!.toString())} ${AppLocalizations.of(context).translate('pro_monat')}'
+                            : '${AppLocalizations.of(context).translate('noch')} ${formatToMoneyAmount(metrics.remaining.toString())}',
+                    style: TextStyle(fontSize: 12.0, color: metrics.isReached ? Colors.greenAccent : Colors.grey.shade400),
                   ),
-                ),
-                // TODO hier weitermachen Werte dynamisch machen
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    MultiSegmentLinearIndicator(
-                      width: MediaQuery.of(context).size.width - 64,
-                      lineHeight: 20.0,
-                      barRadius: Radius.circular(6.0),
-                      segments: [
-                        SegmentLinearIndicator(percent: 0.15, color: Color(0xFFBA0521)),
-                        SegmentLinearIndicator(percent: 0.85, color: Color(0xFFEFEFEF)),
-                      ],
-                      animation: true,
-                      animationDuration: 1000,
-                      curve: Curves.decelerate,
-                      animateFromLastPercent: true,
-                    ),
-                    Text(
-                      "15,0 %",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: Center(
-                    child: Text(
-                      '${formatToMoneyAmount(widget.goal.amount.toString())} / ${formatToMoneyAmount(widget.goal.goalAmount.toString())}',
-                      textAlign: TextAlign.justify,
-                      style: TextStyle(fontSize: 18.0, color: Colors.white),
-                    ),
-                  ),
-                ),
+                ],
               ],
             ),
           ),

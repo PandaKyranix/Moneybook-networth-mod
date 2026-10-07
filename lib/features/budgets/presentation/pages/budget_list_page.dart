@@ -10,18 +10,22 @@ import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/presentation/widgets/deco/empty_list.dart';
 import '../../../bookings/domain/entities/booking.dart';
-import '../../../bookings/domain/value_objects/booking_type.dart';
 import '../../../bookings/presentation/bloc/booking_bloc.dart' as booking;
+import '../../../../shared/domain/value_objects/period_mode.dart';
 import '../../domain/entities/budget.dart';
+import '../../domain/services/budget_calculator.dart';
 import '../bloc/budget_bloc.dart' as budget;
 import '../widgets/deco/create_row.dart';
+import '../widgets/list_views/yearly_budget_overview.dart';
 
 class BudgetListPage extends StatefulWidget {
   final DateTime selectedDate;
+  final PeriodMode periodMode;
 
   const BudgetListPage({
     super.key,
     required this.selectedDate,
+    this.periodMode = PeriodMode.month,
   });
 
   @override
@@ -57,7 +61,7 @@ class _BudgetListPageState extends State<BudgetListPage> with TickerProviderStat
   @override
   void didUpdateWidget(BudgetListPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.selectedDate != oldWidget.selectedDate) {
+    if (widget.periodMode == PeriodMode.month && (widget.selectedDate != oldWidget.selectedDate || widget.periodMode != oldWidget.periodMode)) {
       _loadData();
     }
   }
@@ -80,32 +84,16 @@ class _BudgetListPageState extends State<BudgetListPage> with TickerProviderStat
   }
 
   void _calculateBudgetValues(List<Booking> bookings, List<Budget> budgets) {
-    for (int i = 0; i < budgets.length; i++) {
-      budgets[i].used = 0.0;
-      budgets[i].remaining = 0.0;
-      budgets[i].percentage = 0.0;
-    }
-    for (int i = 0; i < bookings.length; i++) {
-      for (int j = 0; j < budgets.length; j++) {
-        if (bookings[i].categorie == budgets[j].categorie && bookings[i].type == BookingType.expense) {
-          budgets[j].used += bookings[i].amount;
-          break;
-        }
-      }
-    }
-    for (int i = 0; i < budgets.length; i++) {
-      budgets[i].remaining = budgets[i].amount - budgets[i].used;
-      if (budgets[i].amount != 0) {
-        budgets[i].percentage = (budgets[i].used / budgets[i].amount) * 100;
-      } else {
-        budgets[i].percentage = 0;
-      }
-    }
+    // Gleiche Berechnung wie in der Jahresansicht (budget_calculator.dart).
+    applyBudgetUsage(budgets, bookings);
     budgets.sort((first, second) => second.percentage.compareTo(first.percentage));
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.periodMode == PeriodMode.year) {
+      return YearlyBudgetOverview(year: widget.selectedDate.year);
+    }
     return BlocBuilder<booking.BookingBloc, booking.BookingState>(
       builder: (context, bookingState) {
         if (bookingState is booking.Loaded) {

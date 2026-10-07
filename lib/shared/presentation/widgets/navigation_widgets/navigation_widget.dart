@@ -5,6 +5,8 @@ import 'package:moneybook/features/accounts/presentation/pages/account_list_page
 import 'package:moneybook/features/bookings/presentation/pages/booking_list_page.dart';
 import 'package:moneybook/features/bookings/presentation/pages/create_booking_page.dart';
 import 'package:moneybook/features/budgets/presentation/pages/budget_list_page.dart';
+import 'package:moneybook/features/goals/presentation/pages/create_goal_page.dart';
+import 'package:moneybook/features/goals/presentation/pages/goal_overview_page.dart';
 import 'package:moneybook/features/statistics/presentation/pages/statistic_page.dart';
 import 'package:moneybook/shared/presentation/widgets/animations/text_line_animation.dart';
 import 'package:moneybook/shared/presentation/widgets/navigation_widgets/side_menu_drawer_widget.dart';
@@ -13,40 +15,69 @@ import '../../../../core/utils/app_localizations.dart';
 import '../../../../features/bookings/domain/value_objects/amount_type.dart';
 import '../../../../features/bookings/domain/value_objects/booking_type.dart';
 import '../../../../features/bookings/presentation/bloc/booking_bloc.dart';
-import '../../../../features/bookings/presentation/widgets/buttons/month_picker_buttons.dart';
+import '../../../domain/value_objects/period_mode.dart';
+import 'period_selector_bar.dart';
+
+// Tab-Reihenfolge der unteren Navigationsleiste.
+const int bookingsTabIndex = 0;
+const int accountsTabIndex = 1;
+const int statisticsTabIndex = 2;
+const int budgetsTabIndex = 3;
+const int goalsTabIndex = 4;
+const int numberOfTabs = 5;
 
 class BottomNavBar extends StatefulWidget {
   final int tabIndex;
-  final DateTime selectedDate;
+
+  /// Optional: Startmonat. Ohne Angabe wird der zuletzt gewählte Zeitraum (oder heute) verwendet.
+  final DateTime? selectedDate;
   final BookingType bookingType;
   final AmountType amountType;
 
   BottomNavBar({
     super.key,
     required this.tabIndex,
-    DateTime? selectedDate,
+    this.selectedDate,
     BookingType? bookingType,
     AmountType? amountType,
-  })  : selectedDate = selectedDate ?? DateTime.now(),
-        bookingType = bookingType ?? BookingType.expense,
+  })  : bookingType = bookingType ?? BookingType.expense,
         amountType = amountType ?? AmountType.overallExpense;
 
   @override
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
+/// Dockt den "+"-Button an die Tab-Leiste an, auch wenn darüber die Monats-/Jahresleiste liegt.
+class _NavBarDockedFabLocation extends FloatingActionButtonLocation {
+  final double offsetY;
+
+  const _NavBarDockedFabLocation(this.offsetY);
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    final Offset centerDocked = FloatingActionButtonLocation.centerDocked.getOffset(scaffoldGeometry);
+    return Offset(centerDocked.dx, centerDocked.dy + offsetY);
+  }
+}
+
+// Konstante Instanzen, damit der Button nur beim Ein-/Ausblenden der Leiste animiert wird.
+const FloatingActionButtonLocation _fabLocationWithPeriodSelector = _NavBarDockedFabLocation(PeriodSelectorBar.height);
+const FloatingActionButtonLocation _fabLocationWithoutPeriodSelector = _NavBarDockedFabLocation(0.0);
+
 class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMixin, WidgetsBindingObserver {
   late int _tabIndex;
   late TabController _tabController;
   late DateTime _selectedDate;
+  late PeriodMode _periodMode;
   bool _fabAnimationIsFinished = true;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = widget.selectedDate;
+    _selectedDate = widget.selectedDate ?? PeriodMemory.selectedDate ?? DateTime.now();
+    _periodMode = PeriodMemory.mode;
     _tabIndex = widget.tabIndex;
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: numberOfTabs, vsync: this);
     _tabController.animation!.addListener(_tabListener);
     _tabController.index = widget.tabIndex;
     WidgetsBinding.instance.addObserver(this as WidgetsBindingObserver);
@@ -55,6 +86,7 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this as WidgetsBindingObserver);
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -84,18 +116,44 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
     });
   }
 
+  void _onDateChanged(DateTime newDate) {
+    setState(() {
+      _selectedDate = newDate;
+      PeriodMemory.selectedDate = newDate;
+    });
+  }
+
+  void _onPeriodModeChanged(PeriodMode newMode) {
+    setState(() {
+      _periodMode = newMode;
+      PeriodMemory.mode = newMode;
+    });
+  }
+
+  // Aus der Jahresübersicht in einen bestimmten Monat springen.
+  void _openMonth(DateTime month) {
+    setState(() {
+      _selectedDate = month;
+      _periodMode = PeriodMode.month;
+      PeriodMemory.selectedDate = month;
+      PeriodMemory.mode = PeriodMode.month;
+    });
+  }
+
+  bool get _showPeriodSelector => _tabIndex == bookingsTabIndex || _tabIndex == statisticsTabIndex || _tabIndex == budgetsTabIndex;
+
   String _setTitle() {
     switch (_tabIndex) {
-      case 0:
+      case bookingsTabIndex:
         return AppLocalizations.of(context).translate('buchungen');
-      case 1:
+      case accountsTabIndex:
         return AppLocalizations.of(context).translate('konten');
-      case 2:
+      case statisticsTabIndex:
         return AppLocalizations.of(context).translate('statistiken');
-      case 3:
+      case budgetsTabIndex:
         return AppLocalizations.of(context).translate('budgets');
-      case 4:
-        return AppLocalizations.of(context).translate('kategorien');
+      case goalsTabIndex:
+        return AppLocalizations.of(context).translate('ziele');
       default:
         return '';
     }
@@ -106,6 +164,30 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
       _fabAnimationIsFinished = false;
     });
     Future.microtask(openContainer);
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String labelKey) {
+    final Color color = _tabIndex == index ? Colors.cyan.shade400 : Colors.white70;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _onTabChange(index),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 24.0, color: color),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                AppLocalizations.of(context).translate(labelKey),
+                maxLines: 1,
+                style: TextStyle(color: color, fontSize: 12.0),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -127,137 +209,94 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
             );
           },
         ),
-        actions: [
-          _tabIndex != 1
-              ? MonthPickerButtons(
-                  selectedDate: _selectedDate,
-                  selectedDateCallback: (DateTime newDate) {
-                    setState(() {
-                      _selectedDate = newDate;
-                    });
-                  },
-                )
-              : const SizedBox(),
-        ],
       ),
-      floatingActionButton: _tabIndex <= 3
-          ? OpenContainer(
-              transitionDuration: Duration(milliseconds: 400),
-              closedShape: CircleBorder(),
-              closedColor: Colors.cyanAccent,
-              onClosed: (_) {
-                setState(() => _fabAnimationIsFinished = true);
-              },
-              openBuilder: (context, _) => CreateBookingPage(),
-              closedBuilder: (context, openContainer) => FloatingActionButton(
-                onPressed: () => _handleOpen(context, openContainer),
-                child: AnimatedOpacity(
-                  opacity: _fabAnimationIsFinished ? 1.0 : 0.0,
-                  duration: Duration(milliseconds: 1300),
-                  child: Icon(Icons.add),
-                ),
-              ),
-            )
-          : const SizedBox(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: OpenContainer(
+        transitionDuration: const Duration(milliseconds: 400),
+        closedShape: const CircleBorder(),
+        closedColor: Colors.cyanAccent,
+        onClosed: (_) {
+          setState(() => _fabAnimationIsFinished = true);
+        },
+        openBuilder: (context, _) => _tabIndex == goalsTabIndex ? const CreateGoalPage() : const CreateBookingPage(),
+        closedBuilder: (context, openContainer) => FloatingActionButton(
+          onPressed: () => _handleOpen(context, openContainer),
+          child: AnimatedOpacity(
+            opacity: _fabAnimationIsFinished ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 1300),
+            child: const Icon(Icons.add),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: _showPeriodSelector ? _fabLocationWithPeriodSelector : _fabLocationWithoutPeriodSelector,
       body: TabBarView(
         controller: _tabController,
         children: [
-          BookingListPage(selectedDate: _selectedDate),
+          BookingListPage(
+            selectedDate: _selectedDate,
+            periodMode: _periodMode,
+            onMonthSelected: _openMonth,
+          ),
           const AccountListPage(),
           StatisticPage(
             selectedDate: _selectedDate,
             bookingType: widget.bookingType,
             amountType: widget.amountType,
           ),
-          BudgetListPage(selectedDate: _selectedDate),
+          BudgetListPage(
+            selectedDate: _selectedDate,
+            periodMode: _periodMode,
+          ),
+          const GoalOverviewPage(),
         ],
       ),
-      bottomNavigationBar: _tabIndex <= 3
-          ? BottomAppBar(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              height: 60.0,
-              shape: const CircularNotchedRectangle(),
-              notchMargin: 8.0,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.max,
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: <Widget>[
-                    GestureDetector(
-                      onTap: () => _onTabChange(0),
-                      child: Column(
-                        children: <Widget>[
-                          Icon(
-                            Icons.auto_stories_rounded,
-                            size: 24.0,
-                            color: _tabIndex == 0 ? Colors.cyan.shade400 : Colors.white70,
-                          ),
-                          Text(
-                            AppLocalizations.of(context).translate('buchungen'),
-                            style: TextStyle(color: _tabIndex == 0 ? Colors.cyan.shade400 : Colors.white70, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_showPeriodSelector)
+            PeriodSelectorBar(
+              selectedDate: _selectedDate,
+              mode: _periodMode,
+              allowYearMode: _tabIndex != statisticsTabIndex,
+              onDateChanged: _onDateChanged,
+              onModeChanged: _onPeriodModeChanged,
+            ),
+          BottomAppBar(
+            padding: const EdgeInsets.symmetric(horizontal: 6.0),
+            height: 60.0,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8.0,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                children: <Widget>[
+                  // Links zwei, rechts drei Tabs; die Mitte bleibt für den "+"-Button frei.
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildNavItem(bookingsTabIndex, Icons.auto_stories_rounded, 'buchungen'),
+                        _buildNavItem(accountsTabIndex, Icons.account_balance_wallet_rounded, 'konten'),
+                      ],
                     ),
-                    GestureDetector(
-                      onTap: () => _onTabChange(1),
-                      child: Column(
-                        children: <Widget>[
-                          Icon(
-                            Icons.account_balance_wallet_rounded,
-                            size: 24.0,
-                            color: _tabIndex == 1 ? Colors.cyan.shade400 : Colors.white70,
-                          ),
-                          Text(
-                            AppLocalizations.of(context).translate('konten'),
-                            style: TextStyle(color: _tabIndex == 1 ? Colors.cyan.shade400 : Colors.white70, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(width: 72.0),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        _buildNavItem(statisticsTabIndex, Icons.insights_rounded, 'statistiken'),
+                        _buildNavItem(budgetsTabIndex, Icons.savings_rounded, 'budgets'),
+                        _buildNavItem(goalsTabIndex, Icons.flag_rounded, 'ziele'),
+                      ],
                     ),
-                    const SizedBox(),
-                    const SizedBox(),
-                    GestureDetector(
-                      onTap: () => _onTabChange(2),
-                      child: Column(
-                        children: <Widget>[
-                          Icon(
-                            Icons.insights_rounded,
-                            size: 24.0,
-                            color: _tabIndex == 2 ? Colors.cyan.shade400 : Colors.white70,
-                          ), // icon
-                          Text(
-                            AppLocalizations.of(context).translate('statistiken'),
-                            style: TextStyle(color: _tabIndex == 2 ? Colors.cyan.shade400 : Colors.white70, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => _onTabChange(3),
-                      child: Column(
-                        children: <Widget>[
-                          Icon(
-                            Icons.savings_rounded,
-                            size: 24.0,
-                            color: _tabIndex == 3 ? Colors.cyan.shade400 : Colors.white70,
-                          ),
-                          Text(
-                            AppLocalizations.of(context).translate('budgets'),
-                            style: TextStyle(color: _tabIndex == 3 ? Colors.cyan.shade400 : Colors.white70, fontSize: 12.0),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            )
-          : const SizedBox(),
+            ),
+          ),
+        ],
+      ),
       drawer: SideMenuDrawer(
-        tabIndex: _tabIndex,
+        // Der Ziele-Tab hat keinen eigenen Menüeintrag; Index 4 ist im Menü "Kategorien".
+        tabIndex: _tabIndex <= budgetsTabIndex ? _tabIndex : -1,
         onTabChange: (tabIndex) => _onTabChange(tabIndex),
       ),
     );

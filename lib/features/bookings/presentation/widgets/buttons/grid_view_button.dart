@@ -7,12 +7,15 @@ class GridViewButton extends StatelessWidget {
   final String text;
   // Kennzeichnet zurückgelegte Konten (nicht im Vermögen) mit einem Schloss-Symbol.
   final bool showLock;
+  // Kennzeichnet Ziel-Konten (Sparziele) mit einer Fahne.
+  final bool showGoal;
 
   const GridViewButton({
     super.key,
     required this.onPressed,
     required this.text,
     this.showLock = false,
+    this.showGoal = false,
   });
 
   @override
@@ -25,12 +28,12 @@ class GridViewButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(2.0),
         ),
       ),
-      child: showLock
+      child: showLock || showGoal
           ? Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lock_outline_rounded, size: 13.0, color: Colors.amberAccent),
+                Icon(showGoal ? Icons.flag_rounded : Icons.lock_outline_rounded, size: 13.0, color: Colors.amberAccent),
                 Flexible(
                   child: Text(
                     AppLocalizations.of(context).translate(text),

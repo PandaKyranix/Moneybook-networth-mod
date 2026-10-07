@@ -227,6 +227,8 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                           AccountInputField(
                               accountController: _fromAccountController,
                               onAccountSelected: (accountNameForDb) => _setFromAccountNameForDb(accountNameForDb),
+                              // Sparziele können nur per Übertrag befüllt / geleert werden.
+                              allowGoalAccounts: _bookingType == BookingType.transfer,
                               hintText: _bookingType.name == BookingType.expense.name || _bookingType.name == BookingType.income.name
                                   ? AppLocalizations.of(context).translate('konto') + '...'
                                   : AppLocalizations.of(context).translate('abbuchungskonto') + '...',
@@ -237,6 +239,7 @@ class _CreateBookingPageState extends State<CreateBookingPage> {
                               ? AccountInputField(
                                   accountController: _toAccountController,
                                   onAccountSelected: (accountNameForDb) => _setToAccountNameForDb(accountNameForDb),
+                                  allowGoalAccounts: _bookingType == BookingType.transfer,
                                   hintText: AppLocalizations.of(context).translate('konto') + '...',
                                   bottomSheetTitle: AppLocalizations.of(context).translate('konto_auswählen') + ':',
                                 )

@@ -123,4 +123,39 @@ void main() {
       expect(calculateNetSetAside(bookings, {}), 0);
     });
   });
+
+  group('goals and archived accounts', () {
+    test('goal accounts never count towards net worth, but every euro is counted once', () {
+      final summary = calculateNetWorth([
+        _account('Giro', 2000),
+        Account(id: 1, type: AccountType.other, name: 'Urlaub', amount: 750, currency: '€', includeInNetWorth: false, goalId: 1),
+        // Auch falls ein Ziel-Konto (z.B. durch einen Import) als einbezogen markiert wäre:
+        Account(id: 2, type: AccountType.other, name: 'Laptop', amount: 100, currency: '€', goalId: 2),
+      ]);
+      expect(summary.netWorth, 2000);
+      expect(summary.excludedTotal, 850);
+      expect(summary.excludedCount, 2);
+    });
+
+    test('archived accounts are not counted as visible excluded accounts', () {
+      final summary = calculateNetWorth([
+        _account('Giro', 100),
+        Account(id: 3, type: AccountType.other, name: 'Alt', amount: 0, currency: '€', includeInNetWorth: false, goalId: 3, archived: true),
+      ]);
+      expect(summary.excludedCount, 0);
+      expect(summary.excludedTotal, 0);
+    });
+
+    test('investments are classified like transfers', () {
+      expect(classifyTransfer(_transfer('Giro', 'Depot', 1, type: BookingType.investment), {'Depot'}), TransferFlow.setAside);
+      expect(classifyTransfer(_transfer('Giro', 'Depot', 1, type: BookingType.investment), {}), TransferFlow.internal);
+    });
+
+    test('balance changes mirror the account data source', () {
+      expect(accountBalanceChanges(_transfer('A', 'B', 10)), {'A': -10.0, 'B': 10.0});
+      expect(accountBalanceChanges(_transfer('A', 'A', 10)), <String, double>{});
+      expect(accountBalanceChanges(_transfer('A', '', 10, type: BookingType.expense)), {'A': -10.0});
+      expect(accountBalanceChanges(_transfer('A', '', 10, type: BookingType.income)), {'A': 10.0});
+    });
+  });
 }

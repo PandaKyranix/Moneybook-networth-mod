@@ -57,6 +57,18 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Future<Either<Failure, List<Booking>>> loadBookingsBetween(DateTime from, DateTime to) async {
+    try {
+      return Right(await bookingLocalDataSource.loadBookingsBetween(from, to));
+    } on ServerException {
+      return Left(ServerFailure());
+    } catch (_) {
+      // z.B. DatabaseException: die Jahresansicht zeigt dann eine Fehlermeldung statt endlos zu laden.
+      return Left(CacheFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Booking>>> loadSortedMonthly(DateTime selectedDate) async {
     try {
       return Right(await bookingLocalDataSource.loadSortedMonthly(selectedDate));
