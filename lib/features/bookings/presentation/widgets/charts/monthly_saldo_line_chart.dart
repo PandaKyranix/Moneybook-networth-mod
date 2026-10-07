@@ -189,7 +189,8 @@ class MonthlySaldoLineChart extends StatelessWidget {
                           interval: 1.0,
                           getTitlesWidget: (double value, TitleMeta meta) {
                             final int day = value.round();
-                            if (value != day.toDouble() || !(day == 1 || day % 5 == 0) || day > days) {
+                            // Beschriftet werden der 1. sowie jeder 5. Tag; Tag 0 (Monatsanfang) und Tage zu nah am 1. nicht.
+                            if (value != day.toDouble() || day < 1 || day > days || !(day == 1 || day % 5 == 0)) {
                               return const SizedBox();
                             }
                             return SideTitleWidget(

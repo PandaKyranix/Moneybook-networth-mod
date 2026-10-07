@@ -5,8 +5,14 @@ import 'package:moneybook/core/consts/common_consts.dart';
 import 'package:moneybook/features/statistics/presentation/widgets/buttons/booking_type_segmented_button.dart';
 import 'package:moneybook/shared/presentation/widgets/deco/empty_list.dart';
 
+import 'package:dartz/dartz.dart' show Either;
+
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../injection_container.dart';
+import '../../../../shared/domain/value_objects/period_mode.dart';
+import '../../../bookings/domain/repositories/booking_repository.dart';
 import '../../../bookings/domain/entities/booking.dart';
 import '../../../bookings/domain/value_objects/amount_type.dart';
 import '../../../bookings/domain/value_objects/booking_type.dart';
@@ -17,17 +23,20 @@ import '../bloc/categorie_stats_bloc.dart';
 import '../widgets/cards/categorie_percentage_card.dart';
 import '../widgets/charts/categorie_pie_chart.dart';
 import '../widgets/charts/indicator.dart';
+import '../widgets/charts/yearly_statistic_bar_chart.dart';
 
 class StatisticPage extends StatefulWidget {
   final DateTime selectedDate;
   final BookingType bookingType;
   final AmountType amountType;
+  final PeriodMode periodMode;
 
   const StatisticPage({
     super.key,
     required this.selectedDate,
     required this.bookingType,
     required this.amountType,
+    this.periodMode = PeriodMode.month,
   });
 
   @override
@@ -44,6 +53,57 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
   late final AnimationController _animationController;
   late final Animation<Offset> _offsetAnimation;
   static bool _hasAnimated = false;
+  // Jahresansicht: Buchungen des gewählten Jahres (direkt geladen, damit der gemeinsame BookingBloc
+  // der Monatsansichten nicht verändert wird).
+  List<Booking>? _yearBookings;
+  int? _requestedYear;
+  int? _loadedYear;
+
+  bool get _isYearMode => widget.periodMode == PeriodMode.year;
+
+  Future<void> _loadYearBookings(int year) async {
+    if (_requestedYear == year) {
+      return;
+    }
+    _requestedYear = year;
+    final Either<Failure, List<Booking>> result = await sl<BookingRepository>().loadBookingsBetween(DateTime(year, 1, 1), DateTime(year, 12, 31));
+    if (!mounted || _requestedYear != year) {
+      return;
+    }
+    setState(() {
+      _yearBookings = result.fold((failure) => <Booking>[], (bookings) => bookings);
+      _loadedYear = year;
+    });
+  }
+
+  /// Gleiche Auswahl wie bei der Kategorie-Statistik (Buchungsart und Betragsart).
+  bool _matchesSelection(Booking booking) {
+    if (booking.type != _selectedBookingType) {
+      return false;
+    }
+    return booking.amountType.name == _selectedAmountType.name ||
+        _selectedAmountType.name == AmountType.overallExpense.name ||
+        _selectedAmountType.name == AmountType.overallIncome.name;
+  }
+
+  List<double> _monthlyAmounts(List<Booking> bookings) {
+    final List<double> amounts = List<double>.filled(12, 0.0);
+    for (final Booking booking in bookings) {
+      if (booking.date.year == widget.selectedDate.year && _matchesSelection(booking)) {
+        amounts[booking.date.month - 1] += booking.amount;
+      }
+    }
+    return amounts;
+  }
+
+  Color _selectionColor() {
+    if (_selectedBookingType == BookingType.income) {
+      return Colors.greenAccent;
+    } else if (_selectedBookingType == BookingType.investment) {
+      return Colors.cyanAccent;
+    }
+    return Colors.redAccent;
+  }
 
   @override
   void initState() {
@@ -187,17 +247,8 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    _loadMonthlyBookings(context);
-    return BlocBuilder<BookingBloc, BookingState>(
-      builder: (context, bookingState) {
-        if (bookingState is Loaded) {
-          _calculateCategoryStats(bookingState.bookings);
-          _calculateAmountTypeStats(bookingState.bookings, _selectedBookingType);
-          return BlocBuilder<CategorieStatsBloc, CategorieStatsState>(
-            builder: (context, state) {
-              return Column(
+  Widget _buildStatistics(BuildContext context, List<Booking> bookings) {
+    return Column(
                 children: [
                   SlideTransition(
                     position: _offsetAnimation,
@@ -228,7 +279,7 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
                                           onTap: () {
                                             setState(() {
                                               _selectedAmountType = amountTypeStat.amountType;
-                                              _calculateCategoryStats(bookingState.bookings);
+                                              _calculateCategoryStats(bookings);
                                             });
                                           },
                                           child: Indicator(
@@ -257,7 +308,7 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
                         onBookingTypeChanged: (Set<BookingType> newBookingType) {
                           setState(() {
                             _selectedBookingType = newBookingType.first;
-                            _calculateAmountTypeStats(bookingState.bookings, _selectedBookingType);
+                            _calculateAmountTypeStats(bookings, _selectedBookingType);
                             _onBookingTypeChanged(_selectedBookingType);
                           });
                         },
@@ -269,8 +320,17 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
                           child: AnimationLimiter(
                             key: ValueKey('${_selectedAmountType}_${widget.selectedDate}'),
                             child: ListView.builder(
-                              itemCount: _categorieStats.length,
-                              itemBuilder: (BuildContext context, int index) {
+                              // Jahresansicht: erst der Monatsverlauf, dann die Kategorien.
+                              itemCount: _categorieStats.length + (_isYearMode ? 1 : 0),
+                              itemBuilder: (BuildContext context, int listIndex) {
+                                if (_isYearMode && listIndex == 0) {
+                                  return YearlyStatisticBarChart(
+                                    monthlyAmounts: _monthlyAmounts(bookings),
+                                    year: widget.selectedDate.year,
+                                    color: _selectionColor(),
+                                  );
+                                }
+                                final int index = _isYearMode ? listIndex - 1 : listIndex;
                                 return AnimationConfiguration.staggeredList(
                                   position: index,
                                   duration: const Duration(milliseconds: staggeredListDurationInMs),
@@ -294,13 +354,35 @@ class _StatisticPageState extends State<StatisticPage> with TickerProviderStateM
                       : Expanded(
                           child: EmptyList(
                             text: AppLocalizations.of(context).translate('noch_keine_buchungen_für') +
-                                '\n${DateFormatter.dateFormatYMMMM(widget.selectedDate, context)}',
+                                '\n${_isYearMode ? '${widget.selectedDate.year}' : DateFormatter.dateFormatYMMMM(widget.selectedDate, context)}',
                             icon: Icons.donut_small,
                           ),
                         ),
                 ],
-              );
-            },
+);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isYearMode) {
+      final int year = widget.selectedDate.year;
+      _loadYearBookings(year);
+      final List<Booking>? yearBookings = _yearBookings;
+      if (yearBookings == null || _loadedYear != year) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      _calculateCategoryStats(yearBookings);
+      _calculateAmountTypeStats(yearBookings, _selectedBookingType);
+      return _buildStatistics(context, yearBookings);
+    }
+    _loadMonthlyBookings(context);
+    return BlocBuilder<BookingBloc, BookingState>(
+      builder: (context, bookingState) {
+        if (bookingState is Loaded) {
+          _calculateCategoryStats(bookingState.bookings);
+          _calculateAmountTypeStats(bookingState.bookings, _selectedBookingType);
+          return BlocBuilder<CategorieStatsBloc, CategorieStatsState>(
+            builder: (context, state) => _buildStatistics(context, bookingState.bookings),
           );
         }
         return const SizedBox();

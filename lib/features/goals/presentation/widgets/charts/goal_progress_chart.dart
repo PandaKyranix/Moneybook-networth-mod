@@ -117,9 +117,10 @@ class GoalProgressChart extends StatelessWidget {
                 color: Colors.amberAccent,
                 strokeWidth: 1.2,
                 dashArray: [6, 4],
+                // "Ziel" rechts unter der Linie, "Heute" oben an der senkrechten Linie: so überlappen sie nie.
                 label: HorizontalLineLabel(
                   show: true,
-                  alignment: Alignment.topLeft,
+                  alignment: Alignment.bottomRight,
                   style: const TextStyle(color: Colors.amberAccent, fontSize: 10.0),
                   labelResolver: (line) => AppLocalizations.of(context).translate('ziel'),
                 ),

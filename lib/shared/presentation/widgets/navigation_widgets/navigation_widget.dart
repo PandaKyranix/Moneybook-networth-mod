@@ -226,6 +226,7 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
             selectedDate: _selectedDate,
             bookingType: widget.bookingType,
             amountType: widget.amountType,
+            periodMode: _periodMode,
           ),
           BudgetListPage(
             selectedDate: _selectedDate,
@@ -241,7 +242,6 @@ class _BottomNavBarState extends State<BottomNavBar> with TickerProviderStateMix
             PeriodSelectorBar(
               selectedDate: _selectedDate,
               mode: _periodMode,
-              allowYearMode: _tabIndex != statisticsTabIndex,
               onDateChanged: _onDateChanged,
               onModeChanged: _onPeriodModeChanged,
             ),
