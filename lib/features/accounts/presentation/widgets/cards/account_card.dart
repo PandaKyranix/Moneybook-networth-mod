@@ -22,7 +22,8 @@ class _AccountCardState extends State<AccountCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, editAccountRoute, arguments: EditAccountPageArguments(widget.account)),
+      // Erst die Kontoansicht mit allen Buchungen; Bearbeiten ist von dort über den Stift erreichbar.
+      onTap: () => Navigator.pushNamed(context, accountDetailRoute, arguments: EditAccountPageArguments(widget.account)),
       child: Card(
         child: ClipPath(
           clipper: ShapeBorderClipper(

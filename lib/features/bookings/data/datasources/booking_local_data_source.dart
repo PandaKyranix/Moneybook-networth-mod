@@ -19,6 +19,7 @@ abstract class BookingLocalDataSource {
   Future<Booking> load(int id);
   Future<List<Booking>> loadSortedMonthly(DateTime selectedDate);
   Future<List<Booking>> loadBookingsBetween(DateTime from, DateTime to);
+  Future<List<Booking>> loadAccountBookings(String accountName);
   Future<List<Booking>> loadMonthlyAmountTypeBookings(DateTime selectedDate, AmountType amountType);
   Future<List<Booking>> loadCategorieBookings(String categorie);
   Future<List<Booking>> loadPastMonthlyCategorieBookings(String categorie, BookingType bookingType, DateTime date, int monthNumber);
@@ -53,6 +54,14 @@ Booking bookingFromDbMap(Map booking) {
 
 class BookingLocalDataSourceImpl implements BookingLocalDataSource {
   BookingLocalDataSourceImpl();
+
+  /// Alle Buchungen, die ein Konto betreffen (als Abbuchungs- oder Zielkonto), für die Kontoansicht.
+  @override
+  Future<List<Booking>> loadAccountBookings(String accountName) async {
+    db = await openDatabase(localDbName);
+    List<Map> bookingMap = await db.rawQuery('SELECT * FROM $bookingDbName WHERE fromAccount = ? OR toAccount = ?', [accountName, accountName]);
+    return bookingMap.map((booking) => bookingFromDbMap(booking)).toList();
+  }
 
   /// Alle Buchungen von [from] bis einschließlich [to] (nur Datum), z.B. für die Jahresübersicht.
   @override

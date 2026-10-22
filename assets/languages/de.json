@@ -363,5 +363,9 @@
   "ziel_löschen_ohne_geld": "Dieses Ziel enthält kein Geld. Es wird gelöscht; bisherige Buchungen bleiben erhalten.",
   "übertragen_und_löschen": "Übertragen & löschen",
   "löschen": "Löschen",
-  "geplante_buchungen_werden_entfernt": "{anzahl} geplante Buchung(en) mit diesem Ziel (z.B. ein Sparplan) werden entfernt."
+  "geplante_buchungen_werden_entfernt": "{anzahl} geplante Buchung(en) mit diesem Ziel (z.B. ein Sparplan) werden entfernt.",
+  "aktueller_kontostand": "Aktueller Kontostand",
+  "anfangsbestand": "Kontostand vor der ersten Buchung",
+  "ausstehend": "Ausstehend",
+  "noch_keine_buchungen_für_konto": "Noch keine Buchungen mit diesem Konto."
 }

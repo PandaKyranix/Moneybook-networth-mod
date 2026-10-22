@@ -24,6 +24,7 @@ import 'core/consts/route_consts.dart';
 import 'core/theme/darkTheme.dart';
 import 'core/utils/app_localizations.dart';
 import 'features/accounts/presentation/bloc/account_bloc.dart';
+import 'features/accounts/presentation/pages/account_detail_page.dart';
 import 'features/accounts/presentation/pages/edit_account_page.dart';
 import 'features/accounts/presentation/widgets/page_arguments/edit_account_page_arguments.dart';
 import 'features/bookings/presentation/pages/edit_booking_page.dart';
@@ -193,6 +194,12 @@ class _MyAppState extends State<MyApp> {
                 budget: args.budget,
                 serieMode: args.serieMode,
               ),
+              settings: settings,
+            );
+          case accountDetailRoute:
+            final args = settings.arguments as EditAccountPageArguments;
+            return MaterialPageRoute<String>(
+              builder: (context) => AccountDetailPage(account: args.account),
               settings: settings,
             );
           case goalDetailRoute:

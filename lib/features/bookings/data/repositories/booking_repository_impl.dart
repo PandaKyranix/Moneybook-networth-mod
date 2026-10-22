@@ -57,6 +57,15 @@ class BookingRepositoryImpl implements BookingRepository {
   }
 
   @override
+  Future<Either<Failure, List<Booking>>> loadAccountBookings(String accountName) async {
+    try {
+      return Right(await bookingLocalDataSource.loadAccountBookings(accountName));
+    } catch (_) {
+      return Left(CacheFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Booking>>> loadBookingsBetween(DateTime from, DateTime to) async {
     try {
       return Right(await bookingLocalDataSource.loadBookingsBetween(from, to));

@@ -358,5 +358,9 @@
   "ziel_löschen_ohne_geld": "This goal contains no money. It will be deleted; existing bookings are kept.",
   "übertragen_und_löschen": "Transfer & delete",
   "löschen": "Delete",
-  "geplante_buchungen_werden_entfernt": "{anzahl} planned booking(s) with this goal (e.g. a savings plan) will be removed."
+  "geplante_buchungen_werden_entfernt": "{anzahl} planned booking(s) with this goal (e.g. a savings plan) will be removed.",
+  "aktueller_kontostand": "Current balance",
+  "anfangsbestand": "Balance before the first booking",
+  "ausstehend": "Pending",
+  "noch_keine_buchungen_für_konto": "No bookings with this account yet."
 }
