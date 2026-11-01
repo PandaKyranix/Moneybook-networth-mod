@@ -11,6 +11,7 @@ import '../../../../core/utils/account_schema.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/domain/value_objects/period_mode.dart';
+import '../../../accounts/data/datasources/balance_check_local_data_source.dart';
 import '../../../accounts/domain/services/net_worth_calculator.dart';
 import '../../domain/entities/booking.dart';
 import '../../domain/value_objects/amount_type.dart';
@@ -59,6 +60,9 @@ class _BookingListPageState extends State<BookingListPage> {
   Set<String> _excludedAccountNames = {};
   // Konten abgeschlossener Ziele: deren Buchungen sind nicht mehr bearbeitbar.
   Set<String> _archivedAccountNames = {};
+  // Kontostand nach jeder Buchung (bookingId -> {Konto: Stand}) und vermutlich nie gebuchte Daueraufträge.
+  Map<int, Map<String, double>> _bookingBalances = {};
+  Set<int> _possiblyNotBookedIds = {};
   double _monthlySetAside = 0.0;
   double _monthlyDependingSetAside = 0.0;
 
@@ -66,6 +70,19 @@ class _BookingListPageState extends State<BookingListPage> {
   void initState() {
     super.initState();
     _loadExcludedAccountNames();
+    _loadBookingBalances();
+  }
+
+  Future<void> _loadBookingBalances() async {
+    final BalanceCheckData data = await const BalanceCheckLocalDataSource().load();
+    if (!mounted) {
+      return;
+    }
+    final DateTime now = DateTime.now();
+    setState(() {
+      _bookingBalances = data.balancesAfterBookings(now);
+      _possiblyNotBookedIds = data.missedSerieBookings(now).map((booking) => booking.id).toSet();
+    });
   }
 
   Future<void> _loadExcludedAccountNames() async {
@@ -223,7 +240,13 @@ class _BookingListPageState extends State<BookingListPage> {
                                                     leftValue: _dailyIncomeMap[booking.date],
                                                     rightValue: _dailyExpenseMap[booking.date],
                                                   ),
-                                                BookingCard(booking: booking, excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames),
+                                                BookingCard(
+                                                  booking: booking,
+                                                  excludedAccountNames: _excludedAccountNames,
+                                                  lockedAccountNames: _archivedAccountNames,
+                                                  balancesAfter: _bookingBalances[booking.id],
+                                                  possiblyNotBooked: _possiblyNotBookedIds.contains(booking.id),
+                                                ),
                                               ],
                                             ),
                                           ),
@@ -334,11 +357,21 @@ class _BookingListPageState extends State<BookingListPage> {
                                                       leftValue: _dailyIncomeMap[_dependingBookings[index].date],
                                                       rightValue: _dailyExpenseMap[_dependingBookings[index].date],
                                                     ),
-                                                    BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames),
+                                                    BookingCard(
+                                                    booking: _dependingBookings[index],
+                                                    excludedAccountNames: _excludedAccountNames,
+                                                    lockedAccountNames: _archivedAccountNames,
+                                                    balancesAfter: _bookingBalances[_dependingBookings[index].id],
+                                                  ),
                                                   ],
                                                 );
                                               } else {
-                                                return BookingCard(booking: _dependingBookings[index], excludedAccountNames: _excludedAccountNames, lockedAccountNames: _archivedAccountNames);
+                                                return BookingCard(
+                                                    booking: _dependingBookings[index],
+                                                    excludedAccountNames: _excludedAccountNames,
+                                                    lockedAccountNames: _archivedAccountNames,
+                                                    balancesAfter: _bookingBalances[_dependingBookings[index].id],
+                                                  );
                                               }
                                             }
                                             return const SizedBox();

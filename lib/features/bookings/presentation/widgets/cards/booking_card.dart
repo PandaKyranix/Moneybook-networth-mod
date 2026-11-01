@@ -21,6 +21,10 @@ class BookingCard extends StatelessWidget {
   // Konten abgeschlossener / gelöschter Ziele: Buchungen damit sind Historie und nicht mehr bearbeitbar,
   // sonst würde Geld auf ein nicht mehr sichtbares Konto gebucht.
   final Set<String> lockedAccountNames;
+  // Kontostand nach dieser Buchung je beteiligtem Konto (bei Überträgen beide Konten).
+  final Map<String, double>? balancesAfter;
+  // Dauerauftrag, der vermutlich nie auf den Kontostand gebucht wurde (siehe Kontostand-Prüfung).
+  final bool possiblyNotBooked;
 
   const BookingCard({
     super.key,
@@ -28,7 +32,44 @@ class BookingCard extends StatelessWidget {
     this.activateEditing = true,
     this.excludedAccountNames = const {},
     this.lockedAccountNames = const {},
+    this.balancesAfter,
+    this.possiblyNotBooked = false,
   });
+
+  // Zeile unter den Konten: "= 1.234,56 €" bzw. bei Überträgen "1.234,56 € → 500,00 €".
+  Widget _buildBalanceRow() {
+    final Map<String, double>? balances = balancesAfter;
+    if (balances == null || balances.isEmpty) {
+      return const SizedBox();
+    }
+    final bool isTransfer = booking.type == BookingType.transfer || booking.type == BookingType.investment;
+    final double? fromBalance = balances[booking.fromAccount];
+    final double? toBalance = isTransfer ? balances[booking.toAccount] : null;
+    final String text = isTransfer
+        ? '${fromBalance != null ? formatToMoneyAmount(fromBalance.toString()) : '–'} \u2192 ${toBalance != null ? formatToMoneyAmount(toBalance.toString()) : '–'}'
+        : '= ${fromBalance != null ? formatToMoneyAmount(fromBalance.toString()) : '–'}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 3.0),
+      child: Row(
+        children: [
+          Icon(Icons.account_balance_wallet_outlined, size: 12.0, color: Colors.grey.shade600),
+          const SizedBox(width: 4.0),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+            ),
+          ),
+          if (possiblyNotBooked)
+            const Padding(
+              padding: EdgeInsets.only(left: 6.0),
+              child: Icon(Icons.warning_amber_rounded, size: 14.0, color: Colors.amberAccent),
+            ),
+        ],
+      ),
+    );
+  }
 
   bool get _isEditable =>
       activateEditing && !lockedAccountNames.contains(booking.fromAccount) && !lockedAccountNames.contains(booking.toAccount);
@@ -225,6 +266,7 @@ class BookingCard extends StatelessWidget {
                                 _buildTransferFlowIcon(),
                               ],
                             ),
+                            _buildBalanceRow(),
                           ],
                         ),
                       ),

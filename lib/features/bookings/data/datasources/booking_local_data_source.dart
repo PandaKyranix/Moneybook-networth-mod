@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:moneybook/core/consts/database_consts.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../../../core/utils/account_schema.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../categories/domain/value_objects/categorie_type.dart';
 import '../../domain/entities/booking.dart';
@@ -78,7 +79,8 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
   @override
   Future<void> create(Booking booking) async {
     db = await openDatabase(localDbName);
-    await db.rawInsert(
+    final bool storeAsBooked = booking.isBooked && !booking.date.isAfter(DateTime.now());
+    final int id = await db.rawInsert(
       'INSERT INTO $bookingDbName(serieId, type, title, date, repetition, amount, amountType, currency, fromAccount, toAccount, categorie, isBooked) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         booking.serieId,
@@ -96,9 +98,15 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
         // Zukünftige Termine einer Serie, die heute beginnt, wurden dadurch als "gebucht" gespeichert und
         // später nie auf den Kontostand angerechnet. Zukünftige Buchungen sind deshalb immer ungebucht;
         // calculateAndUpdateNewBookings bucht sie, sobald ihr Datum erreicht ist.
-        booking.isBooked && !booking.date.isAfter(DateTime.now()) ? 1 : 0,
+        storeAsBooked ? 1 : 0,
       ],
     );
+    // Vergangene Termine einer neuen Serie werden direkt danach gesammelt auf den Kontostand gebucht
+    // (SerieFinished). Festhalten, damit die Kontostand-Prüfung sie nicht als "nie gebucht" meldet.
+    if (booking.serieId != -1 && storeAsBooked) {
+      await ensureBookingCheckTable(db);
+      await db.rawInsert('INSERT OR REPLACE INTO $bookingCheckDbName(bookingId, status) VALUES(?, ?)', [id, 'auto']);
+    }
   }
 
   @override
@@ -463,6 +471,17 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
     final String todayOnlyDate = "${today.year.toString().padLeft(4, '0')}-"
         "${today.month.toString().padLeft(2, '0')}-"
         "${today.day.toString().padLeft(2, '0')}";
+    await ensureBookingCheckTable(db);
+    // Reparatur alter Daten: Zukünftige Buchungen können noch nie auf einen Kontostand gebucht worden sein
+    // (Kontobuchungen werden für Termine in der Zukunft übersprungen). Ältere Serien haben sie trotzdem als
+    // "gebucht" gespeichert, wodurch sie nie angerechnet wurden. Als ungebucht markieren, damit sie zum
+    // Termin automatisch gebucht werden.
+    // Vorher merken, welche Serien betroffen waren: Nur deren vergangene Termine können nie gebucht worden sein.
+    await db.rawInsert(
+      'INSERT OR IGNORE INTO $affectedSerieDbName(serieId) SELECT DISTINCT serieId FROM $bookingDbName WHERE isBooked = 1 AND serieId != -1 AND substr(date, 1, 10) > ?',
+      [todayOnlyDate],
+    );
+    await db.rawUpdate('UPDATE $bookingDbName SET isBooked = 0 WHERE isBooked = 1 AND substr(date, 1, 10) > ?', [todayOnlyDate]);
     List<Map> newBookingMap =
         await db.rawQuery('SELECT * FROM $bookingDbName WHERE isBooked = ? AND substr(date, 1, 10) <= ?', [0/*= false*/, todayOnlyDate]);
     List<Booking> newBookingList = newBookingMap
@@ -499,6 +518,7 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
               'UPDATE $bookingDbName SET isBooked = ? WHERE id = ?',
               [1/*= true*/, newBookingList[i].id],
             );
+            await ta.rawInsert('INSERT OR REPLACE INTO $bookingCheckDbName(bookingId, status) VALUES(?, ?)', [newBookingList[i].id, 'auto']);
           }
         });
       } else if (newBookingList[i].type == BookingType.income) {
@@ -515,6 +535,7 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
               'UPDATE $bookingDbName SET isBooked = ? WHERE id = ?',
               [1/*= true*/, newBookingList[i].id],
             );
+            await ta.rawInsert('INSERT OR REPLACE INTO $bookingCheckDbName(bookingId, status) VALUES(?, ?)', [newBookingList[i].id, 'auto']);
           }
         });
       } else if (newBookingList[i].type == BookingType.transfer || newBookingList[i].type == BookingType.investment) {
@@ -540,6 +561,7 @@ class BookingLocalDataSourceImpl implements BookingLocalDataSource {
               'UPDATE $bookingDbName SET isBooked = ? WHERE id = ?',
               [1/*= true*/, newBookingList[i].id],
             );
+            await ta.rawInsert('INSERT OR REPLACE INTO $bookingCheckDbName(bookingId, status) VALUES(?, ?)', [newBookingList[i].id, 'auto']);
           }
         });
       }

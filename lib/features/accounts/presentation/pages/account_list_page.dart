@@ -9,6 +9,7 @@ import 'package:moneybook/features/budgets/presentation/widgets/deco/create_row.
 import '../../../../core/consts/common_consts.dart';
 import '../../../../core/utils/app_localizations.dart';
 import '../../../../shared/presentation/widgets/deco/empty_list.dart';
+import '../../data/datasources/balance_check_local_data_source.dart';
 import '../../domain/entities/account.dart';
 import '../../domain/services/net_worth_calculator.dart';
 import '../../domain/value_objects/account_type.dart';
@@ -29,10 +30,50 @@ class _AccountListPageState extends State<AccountListPage> {
   double _excludedTotal = 0.0;
   int _excludedCount = 0;
 
+  // Anzahl der Daueraufträge, die vermutlich nie auf einen Kontostand gebucht wurden.
+  int _missedSerieBookings = 0;
+
   @override
   void initState() {
     super.initState();
     _loadAccounts(context);
+    _loadBalanceCheck();
+  }
+
+  Future<void> _loadBalanceCheck() async {
+    final BalanceCheckData data = await const BalanceCheckLocalDataSource().load();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _missedSerieBookings = data.missedSerieBookings(DateTime.now()).length;
+    });
+  }
+
+  Widget _buildBalanceCheckBanner(BuildContext context) {
+    return Card(
+      color: Colors.amber.withOpacity(0.15),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        onTap: () => Navigator.pushNamed(context, balanceCheckRoute),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12.0, 10.0, 8.0, 10.0),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.amberAccent, size: 20.0),
+              const SizedBox(width: 10.0),
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context).translate('kontostände_prüfen_hinweis').replaceAll('{anzahl}', '$_missedSerieBookings'),
+                  style: const TextStyle(fontSize: 12.5),
+                ),
+              ),
+              const Icon(Icons.keyboard_arrow_right_rounded, color: Colors.amberAccent),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _loadAccounts(BuildContext context) {
@@ -63,6 +104,17 @@ class _AccountListPageState extends State<AccountListPage> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          if (_missedSerieBookings > 0) _buildBalanceCheckBanner(context),
+          Expanded(child: _buildAccounts(context)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccounts(BuildContext context) {
     return Scaffold(
       body: BlocBuilder<AccountBloc, AccountState>(
         builder: (context, state) {

@@ -362,5 +362,17 @@
   "aktueller_kontostand": "Current balance",
   "anfangsbestand": "Balance before the first booking",
   "ausstehend": "Pending",
-  "noch_keine_buchungen_für_konto": "No bookings with this account yet."
+  "noch_keine_buchungen_für_konto": "No bookings with this account yet.",
+  "kontostände_prüfen": "Check balances",
+  "kontostände_prüfen_hinweis": "{anzahl} recurring booking dates were probably never added to your account balances. Check now",
+  "kontostände_prüfen_beschreibung": "Because of a bug in the original app, later dates of recurring bookings (e.g. \"at the start of the month\") were marked as booked but never applied to the account. New dates are booked correctly from now on.\n\nThese past dates were probably not applied. Select which ones to apply and compare the balances below with your real balances. If you already corrected a balance by hand, deselect the affected dates. Deselected dates are saved as correct and not shown again.",
+  "kontostände_prüfen_nichts_gefunden": "No suspicious bookings found. All recurring bookings are applied to your balances.",
+  "kontostände_danach": "Balances after applying",
+  "keine_änderung": "No change",
+  "ausgewählt": "selected",
+  "alle_auswählen": "Select all",
+  "keine_auswählen": "Select none",
+  "auswahl_nachbuchen": "Apply {anzahl}",
+  "kontostände_korrigieren": "Correct balances",
+  "kontostände_korrigieren_bestätigen": "{nachbuchen} dates will be applied to the balances, {korrekt} saved as correct. The bookings themselves stay unchanged."
 }

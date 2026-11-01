@@ -25,6 +25,7 @@ import 'core/theme/darkTheme.dart';
 import 'core/utils/app_localizations.dart';
 import 'features/accounts/presentation/bloc/account_bloc.dart';
 import 'features/accounts/presentation/pages/account_detail_page.dart';
+import 'features/accounts/presentation/pages/balance_check_page.dart';
 import 'features/accounts/presentation/pages/edit_account_page.dart';
 import 'features/accounts/presentation/widgets/page_arguments/edit_account_page_arguments.dart';
 import 'features/bookings/presentation/pages/edit_booking_page.dart';
@@ -148,6 +149,7 @@ class _MyAppState extends State<MyApp> {
         financialFreedomCalculatorRoute: (context) => const FinancialFreedomCalculatorPage(),
         // Die Ziele sind jetzt ein eigener Tab der Hauptseite.
         goalOverviewRoute: (context) => BottomNavBar(tabIndex: goalsTabIndex),
+        balanceCheckRoute: (context) => const BalanceCheckPage(),
       },
       onGenerateRoute: (RouteSettings settings) {
         switch (settings.name) {

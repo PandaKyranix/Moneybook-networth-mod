@@ -26,3 +26,4 @@ const goalDetailRoute = 'goalDetail';
 const editGoalRoute = 'editGoal';
 const goalActionRoute = 'goalAction';
 const accountDetailRoute = 'accountDetail';
+const balanceCheckRoute = 'balanceCheck';

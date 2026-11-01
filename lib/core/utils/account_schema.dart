@@ -25,6 +25,16 @@ Future<void> ensureAccountNetWorthColumn(DatabaseExecutor db) async {
     }
   }
   await ensureGoalTable(db);
+  await ensureBookingCheckTable(db);
+}
+
+/// Buchungen, deren Anrechnung auf den Kontostand feststeht:
+/// - 'auto': beim Anlegen einer Serie oder beim automatischen Buchen fälliger Termine angerechnet
+/// - 'applied': in der Kontostand-Prüfung nachgebucht
+/// - 'dismissed': in der Kontostand-Prüfung als bereits korrekt bestätigt
+Future<void> ensureBookingCheckTable(DatabaseExecutor db) async {
+  await db.execute('CREATE TABLE IF NOT EXISTS $bookingCheckDbName (bookingId INTEGER NOT NULL PRIMARY KEY, status TEXT NOT NULL)');
+  await db.execute('CREATE TABLE IF NOT EXISTS $affectedSerieDbName (serieId INTEGER NOT NULL PRIMARY KEY)');
 }
 
 /// Tabelle der Sparziele. Der gesparte Betrag wird nicht hier gespeichert, sondern ergibt sich immer

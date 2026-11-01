@@ -14,6 +14,10 @@ String categorieDbName = demoMode == false ? 'categories' : 'categories_demo';
 String budgetDbName = demoMode == false ? 'budgets' : 'budgets_demo';
 String userDbName = demoMode == false ? 'user' : 'user_demo';
 String goalDbName = demoMode == false ? 'goals' : 'goals_demo';
+// Merkt sich, welche gebuchten Serienbuchungen sicher auf den Kontostand angerechnet wurden (Kontostand-Prüfung).
+String bookingCheckDbName = demoMode == false ? 'booking_checks' : 'booking_checks_demo';
+// Serien, die vom Fehler mit zukünftigen "gebuchten" Terminen betroffen waren.
+String affectedSerieDbName = demoMode == false ? 'affected_series' : 'affected_series_demo';
 
 // Aktuelle Datenbank Tabellen Version
 int localDbVersion = demoMode == false ? 7 : 7;
@@ -29,6 +33,8 @@ void switchDemoMode(bool demoMode) {
   budgetDbName = demoMode == false ? 'budgets' : 'budgets_demo';
   userDbName = demoMode == false ? 'user' : 'user_demo';
   goalDbName = demoMode == false ? 'goals' : 'goals_demo';
+  bookingCheckDbName = demoMode == false ? 'booking_checks' : 'booking_checks_demo';
+  affectedSerieDbName = demoMode == false ? 'affected_series' : 'affected_series_demo';
 
   localDbVersion = demoMode == false ? 7 : 7;
 }

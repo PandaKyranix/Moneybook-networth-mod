@@ -367,5 +367,17 @@
   "aktueller_kontostand": "Aktueller Kontostand",
   "anfangsbestand": "Kontostand vor der ersten Buchung",
   "ausstehend": "Ausstehend",
-  "noch_keine_buchungen_für_konto": "Noch keine Buchungen mit diesem Konto."
+  "noch_keine_buchungen_für_konto": "Noch keine Buchungen mit diesem Konto.",
+  "kontostände_prüfen": "Kontostände prüfen",
+  "kontostände_prüfen_hinweis": "{anzahl} Termine von Daueraufträgen wurden vermutlich nie auf deine Kontostände gebucht. Jetzt prüfen",
+  "kontostände_prüfen_beschreibung": "Durch einen Fehler der ursprünglichen App wurden spätere Termine von Daueraufträgen (z.B. \"am Monatsanfang\") als gebucht markiert, aber nie auf das Konto angerechnet. Neue Termine werden ab jetzt automatisch richtig gebucht.\n\nDiese vergangenen Termine wurden vermutlich nicht angerechnet. Wähle aus, welche nachgebucht werden sollen, und vergleiche die Kontostände unten mit deinen echten Kontoständen. Hast du einen Kontostand schon von Hand korrigiert, wähle die betroffenen Termine ab. Abgewählte Termine werden als korrekt gespeichert und nicht mehr angezeigt.",
+  "kontostände_prüfen_nichts_gefunden": "Keine auffälligen Buchungen gefunden. Alle Daueraufträge sind auf deine Kontostände gebucht.",
+  "kontostände_danach": "Kontostände nach dem Nachbuchen",
+  "keine_änderung": "Keine Änderung",
+  "ausgewählt": "ausgewählt",
+  "alle_auswählen": "Alle auswählen",
+  "keine_auswählen": "Keine auswählen",
+  "auswahl_nachbuchen": "{anzahl} nachbuchen",
+  "kontostände_korrigieren": "Kontostände korrigieren",
+  "kontostände_korrigieren_bestätigen": "{nachbuchen} Termine werden auf die Kontostände nachgebucht, {korrekt} als korrekt gespeichert. Die Buchungen selbst bleiben unverändert."
 }
